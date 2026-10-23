@@ -33,6 +33,7 @@
     const pg=s.perGame;
     const map={gp:['gp','games','games_played'],gs:['gs','games_started'],mp:['mp','mpg','minutes'],pts:['pts','points'],fg:['fg','fgm'],fga:['fga'],fgPct:['fg_pct','fgPct'],fg3:['fg3','fg3m','3p'],fg3a:['fg3a','3pa'],fg3Pct:['fg3_pct','three','threePointPct'],ft:['ft','ftm'],fta:['fta'],ftPct:['ft_pct'],orb:['orb'],drb:['drb'],trb:['trb','reb','rebounds'],ast:['ast','assists'],stl:['stl','steals'],blk:['blk','blocks'],tov:['tov','turnovers'],pf:['pf','fouls']};
     for(const [dest,aliases] of Object.entries(map)) { let v=pg[dest]; if(v===undefined || v===null) for(const a of aliases) if(p[a]!==undefined){v=p[a];break;} pg[dest]=num(v); }
+    pg.fgPct=rate(pg.fgPct);pg.fg3Pct=rate(pg.fg3Pct);pg.ftPct=rate(pg.ftPct);
     if(pg.mp===null) pg.mp=num(p.mpg);
     if(pg.trb===null && pg.orb!==null && pg.drb!==null) pg.trb=pg.orb+pg.drb;
     s.shooting.efgPct=rate(s.shooting.efgPct ?? p.efgPct ?? p.efg_pct);
@@ -52,7 +53,7 @@
   function persistLocal() { try { localStorage.setItem(DATA_KEY,JSON.stringify(dbObject())); localStorage.setItem(HISTORY_KEY,JSON.stringify(history)); localStorage.setItem(SEASON_KEY,JSON.stringify({wins,losses,teams:teams.map(t=>t.map(p=>p?.id||null))})); } catch(e) { status('Sauvegarde navigateur impossible : '+e.message,true); } }
   function loadLocal() {
     try { const raw=localStorage.getItem(DATA_KEY); if(raw) players=fromStored(safeJSON(raw)); }
-    catch(e) { status('La base locale est illisible. Aucune donnée n’a été écrasée. '+e.message,true); }
+    catch(e) { const raw=localStorage.getItem(DATA_KEY);if(raw!==null)localStorage.setItem(DATA_KEY+'.corrupt-backup',raw);status('La base locale est illisible. Une copie brute a été conservée; aucune donnée n’a été écrasée. '+e.message,true); }
     try { history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); if(!Array.isArray(history))throw new Error('L’historique ne contient pas un tableau.'); }
     catch(e) { const raw=localStorage.getItem(HISTORY_KEY);if(raw!==null)localStorage.setItem(HISTORY_KEY+'.corrupt-backup',raw);history=[];status('Historique illisible : copie brute conservée. '+e.message,true); }
     try {
@@ -177,7 +178,7 @@
     return out;
   }
   function parseCSV(text,filename=''){
-    const lines=text.replace(/^\\uFEFF/,'').split(/\\r?\\n/).filter(x=>x.trim());
+    const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim());
     if(lines.length<2)throw new Error('CSV vide ou sans lignes de données.');
     const parseLine=line=>{const out=[];let cur='',quote=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'&&line[i+1]==='"'&&quote){cur+='"';i++;}else if(ch==='"')quote=!quote;else if(ch===','&&!quote){out.push(cur.trim());cur='';}else cur+=ch;}out.push(cur.trim());return out;};
     const headers=parseLine(lines[0]).map(h=>h.toLowerCase().replace(/[%]/g,'_pct').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''));
@@ -189,7 +190,7 @@
       const name=get('player','name');if(!name)return null;
       const team=get('tm','team'),base={name,team,pos:get('pos','position'),age:get('age'),season:SEASON,source:'Basketball-Reference CSV ('+group+')',rawTables:{[group]:o}};
       const fields=['fg','fga','fg3','fg3a','ft','fta','orb','drb','trb','ast','stl','blk','tov','pf','pts'];
-      if(group==='perGame')return {...base,gp:get('g','gp'),gs:get('gs'),mp:get('mp','mp_per_g'),pts:get('pts','pts_per_g'),fg:get('fg','fg_per_g'),fga:get('fga','fga_per_g'),fg_pct:get('fg_pct'),fg3:get('x3p','fg3','3p'),fg3a:get('x3pa','fg3a','3pa'),fg3_pct:get('x3p_pct','fg3_pct','3p_pct'),ft:get('ft','ft_per_g'),fta:get('fta','fta_per_g'),ft_pct:get('ft_pct'),orb:get('orb','orb_per_g'),drb:get('drb','drb_per_g'),trb:get('trb','trb_per_g'),ast:get('ast','ast_per_g'),stl:get('stl','stl_per_g'),blk:get('blk','blk_per_g'),tov:get('tov','tov_per_g'),pf:get('pf','pf_per_g'),efg_pct:get('efg_pct'),ts_pct:get('ts_pct'),three_par:get('x3p_ar','3par','3p_ar'),f_tr:get('f_tr','ftr')};
+      if(group==='perGame')return {...base,gp:get('g','gp'),gs:get('gs'),mp:get('mp','mp_per_g'),pts:get('pts','pts_per_g'),fg:get('fg','fg_per_g'),fga:get('fga','fga_per_g'),fg_pct:get('fg_pct'),fg3:get('x3p','fg3','3p'),fg3a:get('x3pa','fg3a','3pa'),fg3_pct:get('x3p_pct','fg3_pct','3p_pct'),ft:get('ft','ft_per_g'),fta:get('fta','fta_per_g'),ft_pct:get('ft_pct'),orb:get('orb','orb_per_g'),drb:get('drb','drb_per_g'),trb:get('trb','trb_per_g'),ast:get('ast','ast_per_g'),stl:get('stl','stl_per_g'),blk:get('blk','blk_per_g'),tov:get('tov','tov_per_g'),pf:get('pf','pf_per_g'),efg_pct:get('efg_pct'),ts_pct:get('ts_pct'),three_par:get('x3p_ar','3par','3p_ar'),f_tr:get('f_tr','ftr'),stats:{shooting:{efgPct:get('efg_pct'),tsPct:get('ts_pct'),threePar:get('x3p_ar','3par','3p_ar'),fTr:get('f_tr','ftr'),dist:get('dist')}}};
       const raw={};
       if(group==='perMinute'||group==='perPossession'){for(const k of fields)raw[k]=get(k==='fg3'?'x3p':k==='fg3a'?'x3pa':k);return {...base,stats:{[group]:raw,units:{[group]:group==='perMinute'?'per_minute':'per_100_possessions'}}};}
       if(group==='advanced'){
@@ -307,7 +308,7 @@
   }
   function seasonTotals() {
     const sums=new Map();
-    for(const g of history)for(const line of g.lines)for(const p of line.players){const key=p.playerId+'|'+p.name;if(!sums.has(key))sums.set(key,{name:p.name,gp:0,mp:0,pts:0,fg:0,fga:0,fg3:0,fg3a:0,ft:0,fta:0,orb:0,drb:0,trb:0,ast:0,stl:0,blk:0,tov:0,pf:0});const s=sums.get(key);s.gp++;for(const k of ['mp','pts','fg','fga','fg3','fg3a','ft','fta','orb','drb','trb','ast','stl','blk','tov','pf'])s[k]+=p[k]||0;}
+    for(const g of history.filter(g=>g.season===SEASON))for(const line of g.lines)for(const p of line.players){const key=p.playerId+'|'+p.name;if(!sums.has(key))sums.set(key,{name:p.name,gp:0,mp:0,pts:0,fg:0,fga:0,fg3:0,fg3a:0,ft:0,fta:0,orb:0,drb:0,trb:0,ast:0,stl:0,blk:0,tov:0,pf:0});const s=sums.get(key);s.gp++;for(const k of ['mp','pts','fg','fga','fg3','fg3a','ft','fta','orb','drb','trb','ast','stl','blk','tov','pf'])s[k]+=p[k]||0;}
     return [...sums.values()].map(s=>({...s,ppg:s.pts/s.gp,rpg:s.trb/s.gp,apg:s.ast/s.gp,spg:s.stl/s.gp,bpg:s.blk/s.gp,topg:s.tov/s.gp,mpg:s.mp/s.gp,fgPct:pct(s.fg,s.fga),threePct:pct(s.fg3,s.fg3a),ftPct:pct(s.ft,s.fta),efgPct:s.fga?((s.fg+.5*s.fg3)/s.fga*100).toFixed(1)+'%':'—',tsPct:(2*(s.fga+.44*s.fta))? (s.pts/(2*(s.fga+.44*s.fta))*100).toFixed(1)+'%':'—'}));
   }
   function renderSeason() {
