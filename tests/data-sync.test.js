@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { CATEGORY_PATHS, sourceUrl, decodeEntities, extractTable, csvColumnCount, tableToCsv } = require('../server');
+const { CATEGORY_PATHS, sourceUrl, decodeEntities, extractTable, csvColumnCount, tableToCsv, server } = require('../server');
 
 test('registry exposes all eight requested categories and season URLs', () => {
   assert.equal(Object.keys(CATEGORY_PATHS).length, 8);
@@ -76,4 +76,45 @@ test('restores saved synchronization interval and season, and persists changes',
   elements.syncSeason.handlers.change({ target: { value: '2025' } });
   assert.equal(values.get('nbaSimLab.syncIntervalHours.v1'), '168');
   assert.equal(values.get('nbaSimLab.syncSeasonYear.v1'), '2025');
+});
+
+test('HTTP API validates parameters and reports valid data or upstream refusals', async () => {
+  const originalFetch = global.fetch;
+  const html = '<table id="totals_stats"><thead><tr><th data-stat="player">Player</th><th data-stat="pts">PTS</th><th data-stat="awards">Awards</th></tr></thead><tbody><tr><th data-stat="player" data-append-csv="player01"><a>Zoë &amp; Co.</a></th><td data-stat="pts">1,234</td><td data-stat="awards">AS,NBA1</td></tr></tbody></table>';
+  server.listen(0, '127.0.0.1');
+  await new Promise(resolve => server.once('listening', resolve));
+  const address = server.address();
+  const base = 'http://127.0.0.1:' + address.port;
+  global.fetch = async (input, options) => {
+    const target = String(input);
+    if (target.startsWith(base)) return originalFetch(input, options);
+    if (target.includes('NBA_2099_totals.html')) return { status: 200, ok: true, text: async () => html };
+    if (target.includes('NBA_2098_totals.html')) return { status: 403, ok: false, text: async () => '' };
+    throw new Error('Unexpected upstream request: ' + target);
+  };
+  try {
+    const health = await originalFetch(base + '/api/health');
+    assert.equal(health.status, 200);
+    assert.equal((await health.json()).categories.length, 8);
+
+    const badCategory = await originalFetch(base + '/api/nba/stats?season=2099&category=unknown');
+    assert.equal(badCategory.status, 400);
+    const badSeason = await originalFetch(base + '/api/nba/stats?season=not-a-year&category=totals');
+    assert.equal(badSeason.status, 400);
+
+    const valid = await originalFetch(base + '/api/nba/stats?season=2099&category=totals');
+    const payload = await valid.json();
+    assert.equal(valid.status, 200);
+    assert.equal(payload.rows, 1);
+    assert.equal(payload.columns, 4);
+    assert.match(payload.csv, /Zoë & Co\./);
+    assert.match(payload.csv, /"AS,NBA1"/);
+
+    const blocked = await originalFetch(base + '/api/nba/stats?season=2098&category=totals');
+    assert.equal(blocked.status, 403);
+    assert.match((await blocked.json()).error, /refusé/i);
+  } finally {
+    global.fetch = originalFetch;
+    await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+  }
 });
