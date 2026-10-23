@@ -126,7 +126,7 @@ async function fetchCategory(season, category) {
   if (/captcha|verify you are human|access denied|automated requests/i.test(html.slice(0, 200_000))) {
     throw Object.assign(new Error('La réponse ressemble à une page de blocage; elle n’a pas été interprétée comme des statistiques.'), { statusCode: 502 });
   }
-  const tableId = CATEGORY_PATHS[category] + '_stats';
+  const tableIds = { totals: 'totals_stats', perGame: 'per_game_stats', perMinute: 'per_minute_stats', perPossession: 'per_poss_stats', advanced: 'advanced_stats', playByPlay: 'pbp_stats', shooting: 'shooting_stats', adjustedShooting: 'adj_shooting_stats' };\n  const tableId = tableIds[category];
   const table = extractTable(html, tableId);
   if (!table) throw Object.assign(new Error('Table attendue "' + tableId + '" absente de la réponse.'), { statusCode: 502 });
   const csv = tableToCsv(table);
