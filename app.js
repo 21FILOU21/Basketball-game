@@ -45,13 +45,28 @@
     try { const raw=localStorage.getItem(DATA_KEY); if(raw) players=fromStored(safeJSON(raw)); }
     catch(e) { status('La base locale est illisible. Aucune donnée n’a été écrasée. '+e.message,true); }
     try { history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); if(!Array.isArray(history))history=[]; } catch {history=[];}
-    try { const state=JSON.parse(localStorage.getItem(SEASON_KEY)||'{}'); wins=state.wins||0;losses=state.losses||0; } catch {}
+    try {
+      const state=JSON.parse(localStorage.getItem(SEASON_KEY)||'{}'); wins=state.wins||0;losses=state.losses||0;
+      if(Array.isArray(state.teams) && players.length) teams=state.teams.map(line=>Array.from({length:5},(_,i)=>players.find(p=>p.id===line[i])||null));
+    } catch {}
   }
   function status(msg,bad=false) { const el=$('dataStatus'); if(el){el.textContent=msg;el.className=bad?'notice':'muted';} }
   async function chooseDatabase() {
-    if(!('showSaveFilePicker' in window)) { alert('Ce navigateur ne permet pas de choisir un fichier persistant directement. La base reste sauvegardée dans le stockage local du navigateur; utilisez Exporter pour obtenir un fichier JSON sur votre ordinateur.'); return; }
-    try { fileHandle=await window.showSaveFilePicker({suggestedName:'nba_players_2025-26.json',types:[{description:'Base de joueurs JSON',accept:{'application/json':['.json']}}]}); await writeDatabase(); status('Fichier local lié et sauvegardé.'); }
-    catch(e) { if(e.name!=='AbortError') status('Impossible de lier le fichier : '+e.message,true); }
+    if(!('showOpenFilePicker' in window) || !('showSaveFilePicker' in window)) {
+      alert('Ce navigateur ne permet pas de lier un fichier local de façon persistante. La base est sauvegardée dans le stockage local du navigateur; utilise Exporter pour créer un JSON sur ton ordinateur.');
+      return;
+    }
+    try {
+      const [handle]=await window.showOpenFilePicker({multiple:false,types:[{description:'Base de joueurs JSON',accept:{'application/json':['.json']}}]});
+      const file=await handle.getFile();
+      const parsed=safeJSON(await file.text());
+      players=fromStored(parsed); fileHandle=handle;
+      render(); persistLocal(); status('Base chargée depuis '+file.name+' — '+players.length+' joueurs.');
+    } catch(e) {
+      if(e.name==='AbortError') return;
+      if(e.name==='NotFoundError') { status('Fichier non trouvé. Crée un nouveau fichier avec Exporter.',true); return; }
+      status('Ouverture du fichier impossible : '+e.message,true);
+    }
   }
   async function writeDatabase() {
     if(!fileHandle) { download(JSON.stringify(dbObject(),null,2),'nba_players_2025-26.json','application/json'); return; }
@@ -178,5 +193,6 @@
   $('seasonExport').onclick=()=>download(JSON.stringify({season:SEASON,source:'simulation',generatedAt:new Date().toISOString(),players:seasonTotals(),games:history},null,2),'nba_sim_season_'+SEASON+'.json','application/json');
   // Try browser-local persistence at startup. A selected file is user-authorized; no silent disk writes.
   loadLocal();
+  if(!localStorage.getItem(DATA_KEY)) persistLocal(); // initialize a valid empty database without overwriting an existing one
   render();renderHistory();renderSeason();
 })();
