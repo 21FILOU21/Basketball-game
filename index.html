@@ -1,0 +1,536 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>NBA Sim Lab — 2025-2026</title>
+    <style>
+        :root {
+            --bg: #0a1020;
+            --panel: #111b30;
+            --panel2: #182640;
+            --line: #2a3b59;
+            --txt: #edf3ff;
+            --muted: #9fb0cc;
+            --blue: #67a6ff;
+            --orange: #ff9b54;
+            --green: #62d9a4
+        }
+
+        * {
+            box-sizing: border-box
+        }
+
+        body {
+            margin: 0;
+            background: radial-gradient(ellipse at top, #172b4b 0, #0a1020 55%);
+            color: var(--txt);
+            font: 15px/1.45 system-ui, -apple-system, Segoe UI, sans-serif
+        }
+
+        main {
+            max-width: 1250px;
+            margin: auto;
+            padding: 26px 18px 60px
+        }
+
+        .eyebrow {
+            color: var(--orange);
+            font-weight: 800;
+            letter-spacing: .15em;
+            font-size: 12px
+        }
+
+        h1 {
+            font-size: clamp(30px, 5vw, 48px);
+            margin: 5px 0
+        }
+
+        h2 {
+            margin: 0 0 14px;
+            font-size: 20px
+        }
+
+        p {
+            color: var(--muted)
+        }
+
+        .top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 22px
+        }
+
+        .panel {
+            background: linear-gradient(145deg, #14213a, #0f192b);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 19px;
+            margin: 14px 0;
+            box-shadow: 0 12px 32px #0002
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap
+        }
+
+        .btn {
+            border: 1px solid #385174;
+            background: #213657;
+            color: white;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-weight: 750;
+            cursor: pointer
+        }
+
+        .btn.primary {
+            background: var(--blue);
+            border-color: var(--blue);
+            color: #061326
+        }
+
+        .btn.orange {
+            background: var(--orange);
+            border-color: var(--orange);
+            color: #231307
+        }
+
+        .btn:disabled {
+            opacity: .4;
+            cursor: not-allowed
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 10px
+        }
+
+        .stat {
+            background: #0c1527;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+            padding: 12px
+        }
+
+        .stat b {
+            font-size: 23px;
+            display: block
+        }
+
+        .stat span {
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 1.05fr .95fr;
+            gap: 14px
+        }
+
+        .slots {
+            display: grid;
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+            gap: 8px
+        }
+
+        .slot {
+            min-height: 132px;
+            border: 1px dashed #486184;
+            background: #0d1729;
+            border-radius: 13px;
+            padding: 10px;
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 5px
+        }
+
+        .slot .pos {
+            font-size: 11px;
+            color: var(--orange);
+            font-weight: 800
+        }
+
+        .slot strong {
+            font-size: 13px
+        }
+
+        .slot small {
+            color: var(--muted)
+        }
+
+        .slot button {
+            font-size: 11px;
+            padding: 5px 7px
+        }
+
+        .wheelwrap {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap
+        }
+
+        .wheel {
+            width: 190px;
+            height: 190px;
+            border-radius: 50%;
+            border: 7px solid #dbe8ff;
+            box-shadow: 0 0 0 5px #243b60, 0 12px 35px #0005;
+            display: grid;
+            place-items: center;
+            background: conic-gradient(#ff9b54 0 45deg, #263e64 45deg 90deg, #67a6ff 90deg 135deg, #263e64 135deg 180deg, #62d9a4 180deg 225deg, #263e64 225deg 270deg, #ff9b54 270deg 315deg, #263e64 315deg);
+            transition: transform 3s cubic-bezier(.12, .78, .15, 1)
+        }
+
+        .wheel span {
+            background: #0b1425;
+            border: 3px solid #dbe8ff;
+            border-radius: 50%;
+            width: 90px;
+            height: 90px;
+            display: grid;
+            place-items: center;
+            text-align: center;
+            font-weight: 900
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: end
+        }
+
+        .field {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            color: var(--muted);
+            font-size: 12px
+        }
+
+        .field input,
+        .field select {
+            background: #0b1527;
+            color: white;
+            border: 1px solid var(--line);
+            border-radius: 9px;
+            padding: 10px;
+            min-width: 130px
+        }
+
+        .playerlist {
+            display: grid;
+            gap: 8px;
+            max-height: 520px;
+            overflow: auto
+        }
+
+        .player {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 8px;
+            align-items: center;
+            padding: 11px;
+            background: #0c1628;
+            border: 1px solid #263958;
+            border-radius: 11px
+        }
+
+        .player strong {
+            display: block
+        }
+
+        .player small {
+            color: var(--muted)
+        }
+
+        .pill {
+            display: inline-block;
+            border: 1px solid #385174;
+            border-radius: 99px;
+            padding: 2px 7px;
+            font-size: 11px;
+            color: #c7d9f8;
+            margin: 3px 3px 0 0
+        }
+
+        .tablewrap {
+            overflow: auto
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            font-size: 13px
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid var(--line);
+            white-space: nowrap
+        }
+
+        th {
+            color: var(--muted);
+            font-weight: 700
+        }
+
+        input[type=range] {
+            accent-color: var(--blue);
+            width: 100%
+        }
+
+        .notice {
+            border-left: 3px solid var(--orange);
+            padding: 10px 13px;
+            background: #251f20;
+            color: #f7d9c2;
+            border-radius: 0 8px 8px 0
+        }
+
+        .good {
+            color: var(--green)
+        }
+
+        .muted {
+            color: var(--muted)
+        }
+
+        .result {
+            font-size: 32px;
+            font-weight: 900
+        }
+
+        .bar {
+            height: 8px;
+            background: #243653;
+            border-radius: 9px;
+            overflow: hidden
+        }
+
+        .bar i {
+            display: block;
+            height: 100%;
+            background: var(--blue)
+        }
+
+        footer {
+            color: var(--muted);
+            font-size: 12px;
+            margin-top: 20px
+        }
+
+        @media(max-width:850px) {
+            .layout {
+                grid-template-columns: 1fr
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, minmax(0, 1fr))
+            }
+
+            .slots {
+                grid-template-columns: repeat(2, minmax(0, 1fr))
+            }
+
+            .slot:last-child {
+                grid-column: span 2
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <main>
+        <div class="top">
+            <div>
+                <div class="eyebrow">COURTSIDE LAB / PROTOTYPE</div>
+                <h1>NBA Sim Lab <span style="color:var(--orange)">26</span></h1>
+                <p>Construis ton cinq. Fais tourner la roue. Simule un match avec la variance hot / cold.</p>
+            </div>
+            <div class="actions"><button class="btn" id="export">Exporter les stats .txt</button><label class="btn"
+                    for="importFile">Importer un fichier JSON</label><input hidden id="importFile" type="file"
+                    accept=".json,.txt,application/json"></div>
+        </div>
+        <div class="panel">
+            <h2>01 — Données joueurs</h2>
+            <div class="notice">Le site NBA ne peut pas être aspiré de façon fiable directement depuis une page HTML
+                locale (CORS / restrictions). Le bouton ci-dessous charge un jeu de démonstration clairement identifié.
+                Pour des stats réelles 2025-2026, importe un JSON issu d'une source autorisée; le programme conserve les
+                données et peut les exporter en texte.</div>
+            <div class="actions" style="margin-top:13px"><button class="btn primary" id="demo">Charger les joueurs de
+                    démo</button><button class="btn" id="reset">Réinitialiser</button></div>
+            <p id="dataStatus">Aucune donnée chargée.</p>
+            <div class="stats">
+                <div class="stat"><b id="playerCount">0</b><span>Joueurs en base</span></div>
+                <div class="stat"><b id="teamCount">0</b><span>Équipes disponibles</span></div>
+                <div class="stat"><b id="avgTs">—</b><span>TS% moyen</span></div>
+                <div class="stat"><b id="dataSeason">2025-26</b><span>Saison ciblée</span></div>
+            </div>
+        </div>
+        <div class="layout">
+            <section class="panel">
+                <h2>02 — Les cinq starters</h2>
+                <p>Choisis les joueurs depuis la base. Les postes sont indicatifs : tu peux mettre un joueur à n’importe
+                    quel spot.</p>
+                <div class="slots" id="slots"></div>
+                <div class="controls" style="margin-top:14px"><label class="field">Ajouter un joueur<select
+                            id="addPlayer"></select></label><label class="field">Spot<select id="addSlot">
+                            <option value="0">PG</option>
+                            <option value="1">SG</option>
+                            <option value="2">SF</option>
+                            <option value="3">PF</option>
+                            <option value="4">C</option>
+                        </select></label><button class="btn primary" id="addBtn">Ajouter au cinq</button></div>
+            </section>
+            <section class="panel">
+                <h2>03 — La roue des équipes</h2>
+                <p>Tourne la roue pour tirer une franchise, puis sélectionne un joueur de cette équipe dans la liste.
+                </p>
+                <div class="wheelwrap">
+                    <div class="wheel" id="wheel"><span id="wheelLabel">NBA<br>ROULETTE</span></div>
+                    <div style="flex:1;min-width:180px">
+                        <div class="result" id="teamResult">—</div>
+                        <p id="teamHint">Charge la base pour commencer.</p><button class="btn orange" id="spin"
+                            disabled>Faire tourner la roue</button>
+                    </div>
+                </div>
+                <div class="controls" style="margin-top:14px"><label class="field" style="flex:1">Joueurs de l’équipe
+                        tirée<select id="teamPlayers"></select></label><button class="btn" id="addTeamPlayer">Ajouter au
+                        cinq</button></div>
+            </section>
+        </div>
+        <section class="panel">
+            <h2>04 — Simulation du match</h2>
+            <p>Simulation de possession simplifiée. Les probabilités sont estimées à partir du TS%, du volume de points,
+                du tir à 3 points et des tendances de forme simulées — ce n’est pas un moteur NBA officiel.</p>
+            <div class="stats">
+                <div class="stat"><b id="scoreA">0</b><span>Ton cinq</span></div>
+                <div class="stat"><b id="scoreB">0</b><span>Adversaire simulé</span></div>
+                <div class="stat"><b id="winner">—</b><span>Résultat</span></div>
+                <div class="stat"><b id="momentum">Neutre</b><span>Momentum de forme</span></div>
+                <div class="stat"><b id="Wins">0</b><span>Matchs gagnés</span></div>
+                <div class="stat"><b id="Loses">0</b><span>Matchs perdus</span></div>
+            </div>
+            <div class="controls" style="margin:14px 0"><label class="field">Possessions par équipe<select
+                        id="possessions">
+                        <option>60</option>
+                        <option selected>90</option>
+                        <option>100</option>
+                        <option>120</option>
+                    </select></label><label class="field">Variance hot/cold <span id="varianceValue">65%</span><input
+                        type="range" id="variance" min="0" max="100" value="65"></label><button class="btn primary"
+                    id="simulate">Simuler le match</button></div>
+            <div id="gameLog" class="muted">Le journal du match apparaîtra ici.</div>
+        </section>
+        <section class="panel">
+            <h2>05 — Base de joueurs & stats</h2>
+            <div class="controls"><label class="field" style="flex:1">Rechercher<input id="search"
+                        placeholder="Nom, équipe ou poste…"></label><label class="field">Trier par<select id="sort">
+                        <option value="pts">Points</option>
+                        <option value="ts">True Shooting</option>
+                        <option value="three">3P%</option>
+                        <option value="reb">Rebonds</option>
+                        <option value="ast">Passes</option>
+                    </select></label></div>
+            <div class="tablewrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Joueur</th>
+                            <th>Équipe</th>
+                            <th>Poste</th>
+                            <th>PTS</th>
+                            <th>REB</th>
+                            <th>AST</th>
+                            <th>TS%</th>
+                            <th>3P%</th>
+                            <th>MPG</th>
+                        </tr>
+                    </thead>
+                    <tbody id="playerTable"></tbody>
+                </table>
+            </div>
+        </section>
+        <footer>NBA Sim Lab — prototype local. Les données restent dans la session du navigateur jusqu’à export; aucun
+            serveur ni compte n’est utilisé. La saison 2025-2026 doit être alimentée par des statistiques vérifiées.
+        </footer>
+    </main>
+    <script>
+        const $ = id => document.getElementById(id);
+        const positions = ['PG', 'SG', 'SF', 'PF', 'C'];
+        let players = [], starters = [null, null, null, null, null], selectedTeam = null, spinTurns = 0;
+        let win = 0;
+        let lose = 0;
+        const demoPlayers = [
+            ['Shai Gilgeous-Alexander', 'OKC', 'PG', 31.4, 4.5, 6.2, .638, .375, 34.2], ['Jalen Williams', 'OKC', 'SG', 21.6, 5.3, 5.1, .602, .365, 32.1], ['Chet Holmgren', 'OKC', 'C', 17.8, 8.7, 2.1, .625, .372, 29.4], ['Stephen Curry', 'GSW', 'PG', 23.4, 4.5, 6.1, .611, .397, 30.2], ['Jimmy Butler', 'GSW', 'SF', 17.5, 5.4, 5.2, .598, .315, 30.1], ['LeBron James', 'LAL', 'SF', 24.4, 7.8, 8.2, .622, .367, 35.1], ['Luka Dončić', 'LAL', 'PG', 28.2, 8.1, 8.7, .608, .365, 35.6], ['Anthony Davis', 'DAL', 'C', 24.7, 11.6, 3.5, .624, .270, 34.0], ['Jayson Tatum', 'BOS', 'SF', 26.8, 8.7, 5.4, .601, .376, 35.8], ['Jaylen Brown', 'BOS', 'SG', 23.0, 5.8, 3.6, .574, .354, 34.1], ['Nikola Jokić', 'DEN', 'C', 29.6, 12.7, 10.2, .668, .421, 36.3], ['Jamal Murray', 'DEN', 'PG', 21.2, 4.1, 6.3, .583, .398, 34.0], ['Giannis Antetokounmpo', 'MIL', 'PF', 30.4, 11.5, 6.5, .648, .222, 35.0], ['Damian Lillard', 'MIL', 'PG', 24.3, 4.4, 7.0, .591, .375, 35.2], ['Kevin Durant', 'PHX', 'PF', 27.1, 6.6, 5.0, .641, .417, 36.0], ['Devin Booker', 'PHX', 'SG', 27.8, 4.5, 6.9, .596, .365, 36.2], ['Anthony Edwards', 'MIN', 'SG', 27.6, 5.7, 4.5, .577, .395, 36.1], ['Rudy Gobert', 'MIN', 'C', 14.0, 12.9, 1.4, .675, 0, 30.5], ['Joel Embiid', 'PHI', 'C', 30.1, 11.2, 5.6, .626, .337, 33.4], ['Tyrese Maxey', 'PHI', 'PG', 26.0, 3.7, 6.8, .590, .373, 37.0], ['Donovan Mitchell', 'CLE', 'SG', 26.6, 4.8, 5.2, .594, .370, 34.0], ['Evan Mobley', 'CLE', 'PF', 18.6, 9.3, 3.2, .620, .370, 30.8], ['Victor Wembanyama', 'SAS', 'C', 24.5, 11.0, 3.8, .584, .352, 31.0], ['De’Aaron Fox', 'SAS', 'PG', 25.2, 4.3, 6.1, .578, .369, 34.0], ['Trae Young', 'ATL', 'PG', 25.7, 3.1, 10.8, .582, .370, 36.0], ['Paolo Banchero', 'ORL', 'PF', 25.0, 7.8, 4.9, .560, .335, 35.0], ['Tyrese Haliburton', 'IND', 'PG', 20.1, 3.9, 10.9, .623, .386, 33.5], ['LaMelo Ball', 'CHA', 'PG', 25.2, 5.0, 8.1, .564, .364, 32.0], ['Brandon Ingram', 'TOR', 'SF', 22.2, 5.6, 5.2, .575, .365, 33.0]
+            , ['Zion Williamson', 'NOP', 'PF', 24.6, 6.6, 5.2, .640, .333, 31.0],
+            ['Shaun Détré', 'TOR', 'SF', 32.5, 4.6, 10.8, .700, .500, 32.0],
+            ['Félix Dompierre', 'SAS', 'SG', 27.2, 2.2, 10.4, .500, .350, 28.0],
+            ['Léandre Landry', 'LAL', 'PF', 35.3, 8.5, 4.4, .300, .300, 42.0],
+            ['William Champagne', 'OKC', 'C', 25.2, 12.6, 6.5, .300, .170, 28.0],
+            ['Marshall', 'SAS', 'PG', 14.2, 0.8, 14.5, .180, .220, 14.0],
+            ['Yrone Détré', 'GSW', 'PG', 31.3, 6.7, 11.9, .500, .500, 36.0],
+        ].map((x, i) => ({id: i + 1, name: x[0], team: x[1], pos: x[2], pts: x[3], reb: x[4], ast: x[5], ts: x[6], three: x[7], mpg: x[8], season: '2025-26', source: 'DEMO — valeurs illustratives, non vérifiées'}));
+        function esc(s) {return String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]))}
+        function normalize(raw) {return raw.map((p, i) => ({id: p.id ?? i + 1, name: p.name ?? p.player ?? 'Inconnu', team: p.team ?? p.teamAbbreviation ?? 'UNK', pos: p.pos ?? p.position ?? '—', pts: +(p.pts ?? p.points ?? 0), reb: +(p.reb ?? p.rebounds ?? 0), ast: +(p.ast ?? p.assists ?? 0), ts: parseRate(p.ts ?? p.ts_pct ?? p.trueShootingPct ?? 0.56), three: parseRate(p.three ?? p.fg3_pct ?? p.threePointPct ?? 0.35), mpg: +(p.mpg ?? p.minutes ?? 0), season: p.season ?? '2025-26', source: p.source ?? 'Import utilisateur'}))}
+        function parseRate(v) {let n = Number(v) || 0; return n > 1 ? n / 100 : n}
+        function load(list, status) {players = normalize(list); starters = [null, null, null, null, null]; selectedTeam = null; render(); $('dataStatus').textContent = status}
+        function render() {
+            const teams = [...new Set(players.map(p => p.team))].sort(); $('playerCount').textContent = players.length; $('teamCount').textContent = teams.length; $('avgTs').textContent = players.length ? (players.reduce((a, p) => a + p.ts, 0) / players.length * 100).toFixed(1) + '%' : '—'; $('dataStatus').className = 'muted'; $('spin').disabled = !teams.length;
+            $('addPlayer').innerHTML = players.map(p => `<option value="${p.id}">${esc(p.name)} — ${esc(p.team)}</option>`).join(''); renderSlots(); renderTable(); renderTeamSelect()
+        }
+        function renderSlots() {$('slots').innerHTML = starters.map((p, i) => `<div class="slot"><div class="pos">${positions[i]}</div>${p ? `<strong>${esc(p.name)}</strong><small>${esc(p.team)} · ${p.pts.toFixed(1)} PTS</small><small>TS ${(p.ts * 100).toFixed(1)}%</small><button class="btn" onclick="removeStarter(${i})">Retirer</button>` : `<strong class="muted">Spot libre</strong><small>Choisis un joueur</small>`}</div>`).join('')}
+        function renderTable() {let q = $('search').value.toLowerCase(), sort = $('sort').value; let arr = players.filter(p => (p.name + ' ' + p.team + ' ' + p.pos).toLowerCase().includes(q)).sort((a, b) => b[sort] - a[sort]); $('playerTable').innerHTML = arr.map(p => `<tr><td><b>${esc(p.name)}</b><br><span class="muted">${esc(p.source)}</span></td><td>${esc(p.team)}</td><td>${esc(p.pos)}</td><td>${p.pts.toFixed(1)}</td><td>${p.reb.toFixed(1)}</td><td>${p.ast.toFixed(1)}</td><td>${(p.ts * 100).toFixed(1)}%</td><td>${(p.three * 100).toFixed(1)}%</td><td>${p.mpg.toFixed(1)}</td></tr>`).join('')}
+        function renderTeamSelect() {let arr = players.filter(p => p.team === selectedTeam); $('teamPlayers').innerHTML = arr.length ? arr.map(p => `<option value="${p.id}">${esc(p.name)} · ${p.pos} · TS ${(p.ts * 100).toFixed(1)}%</option>`).join('') : '<option value="">Tire une équipe d’abord</option>'}
+        function removeStarter(i) {starters[i] = null; renderSlots()}
+        function addToSlot(p, slot) {if (!p) return; starters[slot] = p; renderSlots()}
+        $('demo').onclick = () => load(demoPlayers, 'Démo chargée : ' + demoPlayers.length + ' profils illustratifs. Ce ne sont PAS les statistiques officielles 2025-2026.');
+        $('reset').onclick = () => {players = []; starters = [null, null, null, null, null]; selectedTeam = null; render(); $('dataStatus').textContent = 'Base réinitialisée.'; $('teamResult').textContent = '—'; $('teamHint').textContent = 'Charge la base pour commencer.'};
+        $('addBtn').onclick = () => {let p = players.find(x => x.id == $('addPlayer').value); addToSlot(p, +$('addSlot').value)};
+        $('addTeamPlayer').onclick = () => {let p = players.find(x => x.id == $('teamPlayers').value); if (!p) return; let i = starters.findIndex(x => !x); addToSlot(p, i < 0 ? +$('addSlot').value : i)};
+        $('spin').onclick = () => {let teams = [...new Set(players.map(p => p.team))]; if (!teams.length) return; let team = teams[Math.floor(Math.random() * teams.length)]; spinTurns += 5 + Math.floor(Math.random() * 4); $('wheel').style.transform = `rotate(${spinTurns * 360 + Math.random() * 300}deg)`; $('teamResult').textContent = team; $('teamHint').textContent = players.filter(p => p.team === team).length + ' joueur(s) dans la base'; selectedTeam = team; setTimeout(renderTeamSelect, 300)};
+        $('search').oninput = renderTable; $('sort').onchange = renderTable; $('variance').oninput = () => $('varianceValue').textContent = $('variance').value + '%';
+        $('export').onclick = () => {const body = ['NBA SIM LAB — EXPORT DE STATS', 'Saison ciblée: 2025-2026', 'Date export: ' + new Date().toISOString(), 'ATTENTION: les profils DEMO sont illustratifs et non des statistiques officielles.', 'Format: nom | équipe | poste | PTS | REB | AST | TS% | 3P% | MPG | source', '', ...players.map(p => `${p.name} | ${p.team} | ${p.pos} | ${p.pts} | ${p.reb} | ${p.ast} | ${(p.ts * 100).toFixed(2)}% | ${(p.three * 100).toFixed(2)}% | ${p.mpg} | ${p.source}`)].join('\\n'); download(body, 'nba_stats_2025-2026.txt', 'text/plain;charset=utf-8')};
+        $('importFile').onchange = async e => {let f = e.target.files[0]; if (!f) return; try {let txt = await f.text(); let data = JSON.parse(txt); if (data.players) data = data.players; if (!Array.isArray(data)) throw Error('Le JSON doit contenir un tableau de joueurs (ou { "players": [...] }).'); load(data, `Import réussi : ${data.length} entrées depuis ${f.name}. Vérifie la source et la saison des données.`)} catch (err) {alert('Import impossible : ' + err.message + '\\nFormat attendu : JSON avec name, team, pos, pts, reb, ast, ts, three, mpg.')} };
+        function download(content, name, type) {let a = document.createElement('a'), url = URL.createObjectURL(new Blob([content], {type})); a.href = url; a.download = name; a.click(); URL.revokeObjectURL(url)}
+        function hotFactor(p, variance) {let v = variance / 100; if (Math.random() < v * .23) return 1.22 + Math.random() * .30; if (Math.random() < v * .23) return .52 + Math.random() * .30; return .86 + Math.random() * .28}
+        function simulate() {
+            let five = starters.filter(Boolean); if (five.length < 5) {$('gameLog').innerHTML = '<span style="color:#ffbd8d">Il faut cinq starters pour lancer la simulation.</span>'; return } let n = +$('possessions').value, variance = +$('variance').value; let home = 0, away = 0, hotNames = [], coldNames = [], lines = []; let form = five.map(p => ({p, hot: hotFactor(p, variance)})); form.forEach(x => {if (x.hot > 1.2) hotNames.push(x.p.name); if (x.hot < .72) coldNames.push(x.p.name)});
+            for (let i = 0; i < n; i++) {
+                let x = form[Math.floor(Math.random() * form.length)], p = x.p; let baseTs = Math.max(.25, Math.min(.78, p.ts)); let shotProb = Math.max(.27, Math.min(.70, baseTs * x.hot)); let threeShare = Math.max(.03, Math.min(.65, p.three ? p.three * 1.35 : .30)); let r = Math.random(); if (r < shotProb) {let three = Math.random() < threeShare; home += three ? 3 : 2} else if (Math.random() < .13) home += 1;
+                let oppPts = Math.random() < .49 ? 2 : 0; if (Math.random() < .37) oppPts += Math.random() < .36 ? 1 : 0; away += oppPts
+            }
+            let labels = []; if (hotNames.length) labels.push('🔥 Hot : ' + hotNames.join(', ')); if (coldNames.length) labels.push('🧊 Cold : ' + coldNames.join(', ')); if (!labels.length) labels.push('Forme globalement neutre.'); $('scoreA').textContent = home; $('scoreB').textContent = away; $('winner').textContent = home === away ? 'Égalité' : home > away ? 'VICTOIRE' : 'DÉFAITE'; $('momentum').textContent = hotNames.length ? 'Hot' : coldNames.length ? 'Cold' : 'Neutre'; $('Wins').textContent = win; $('Loses').textContent = lose; $('gameLog').innerHTML = `<p>${labels.map(esc).join('<br>')}</p><p>Possessions : ${n} · Variance : ${variance}% · Cinq utilisé : ${five.map(p => esc(p.name)).join(', ')}</p><small>Modèle jouet : il ne calcule pas de vraies possessions NBA, les rebonds, fautes, turnovers, matchups ou usage rate. Les scores sont une simulation de prototype.</small>`
+            if (home > away) {
+                win += 1;
+            }
+            else {
+                lose += 1;
+            }
+            if (win + lose == 82) {
+                win = 0;
+                lose = 0;
+            }
+        }
+        $('simulate').onclick = simulate;
+        render();
+    </script>
+</body>
+
+</html>
