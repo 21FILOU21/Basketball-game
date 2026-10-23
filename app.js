@@ -7,6 +7,7 @@
   const HISTORY_KEY = 'nbaSimLab.history.v2';
   const SEASON_KEY = 'nbaSimLab.season.v2';
   const SEASON = '2025-26';
+  const HANDLE_DB = 'nbaSimLab.fileHandles.v1';
   let players = [], teams = [Array(5).fill(null), Array(5).fill(null)], selectedTeam = null;
   let history = [], fileHandle = null, spinTurns = 0, wins = 0, losses = 0, latestGame = null;
 
@@ -62,23 +63,58 @@
     } catch(e) { const raw=localStorage.getItem(SEASON_KEY);if(raw!==null)localStorage.setItem(SEASON_KEY+'.corrupt-backup',raw);status('Sauvegarde de saison illisible : copie brute conservée. '+e.message,true); }
   }
   function status(msg,bad=false) { const el=$('dataStatus'); if(el){el.textContent=msg;el.className=bad?'notice':'muted';} }
+  function handleStore(action,value) {
+    return new Promise((resolve,reject)=>{
+      if(!window.indexedDB){resolve(null);return;}
+      const req=window.indexedDB.open(HANDLE_DB,1);
+      req.onupgradeneeded=()=>{if(!req.result.objectStoreNames.contains('handles'))req.result.createObjectStore('handles');};
+      req.onerror=()=>reject(req.error||new Error('Impossible d’ouvrir le stockage des fichiers.'));
+      req.onsuccess=()=>{
+        const db=req.result,tx=db.transaction('handles',action==='put'?'readwrite':'readonly'),store=tx.objectStore('handles');
+        const op=action==='put'?store.put(value,'players'):store.get('players');
+        op.onsuccess=()=>resolve(op.result??null);op.onerror=()=>reject(op.error||new Error('Erreur de stockage du fichier.'));
+        tx.oncomplete=()=>db.close();tx.onerror=()=>{db.close();reject(tx.error||new Error('Écriture du stockage des fichiers impossible.'));};
+      };
+    });
+  }
+  async function loadHandle(handle) {
+    const permission=handle.queryPermission?await handle.queryPermission({mode:'readwrite'}):'granted';
+    if(permission!=='granted')throw new Error('Autorisation de lecture/écriture refusée. Sélectionne de nouveau le fichier.');
+    const file=await handle.getFile(),parsed=safeJSON(await file.text());
+    players=fromStored(parsed);fileHandle=handle;
+    teams=teams.map(line=>line.map(old=>old?players.find(p=>p.id===old.id)||null:null));
+    await handleStore('put',handle);
+    render();persistLocal();status('Base chargée depuis '+file.name+' — '+players.length+' joueurs.');
+  }
   async function chooseDatabase() {
     if(!('showOpenFilePicker' in window) || !('showSaveFilePicker' in window)) {
-      alert('Ce navigateur ne permet pas de lier un fichier local de façon persistante. La base est sauvegardée dans le stockage local du navigateur; utilise Exporter pour créer un JSON sur ton ordinateur.');
+      alert('Ce navigateur ne prend pas en charge l’accès persistant aux fichiers. La base reste sauvegardée dans le navigateur; utilise Exporter pour obtenir un JSON.');
       return;
     }
     try {
+      const saved=await handleStore('get');
+      if(saved){
+        try {
+          let permission=saved.queryPermission?await saved.queryPermission({mode:'readwrite'}):'granted';
+          if(permission!=='granted'&&saved.requestPermission)permission=await saved.requestPermission({mode:'readwrite'});
+          if(permission==='granted'){await loadHandle(saved);return;}
+        }catch{}
+      }
       const [handle]=await window.showOpenFilePicker({multiple:false,types:[{description:'Base de joueurs JSON',accept:{'application/json':['.json']}}]});
-      const file=await handle.getFile();
-      const parsed=safeJSON(await file.text());
-      players=fromStored(parsed); fileHandle=handle;
-      teams=teams.map(line=>line.map(old=>old?players.find(p=>p.id===old.id)||null:null));
-      render(); persistLocal(); status('Base chargée depuis '+file.name+' — '+players.length+' joueurs.');
-    } catch(e) {
-      if(e.name==='AbortError') return;
-      if(e.name==='NotFoundError') { status('Fichier non trouvé. Crée un nouveau fichier avec Exporter.',true); return; }
+      await loadHandle(handle);
+    }catch(e){
+      if(e.name==='AbortError')return;
       status('Ouverture du fichier impossible : '+e.message,true);
     }
+  }
+  async function restoreLinkedDatabase() {
+    try {
+      const handle=await handleStore('get');if(!handle)return;
+      fileHandle=handle;
+      const permission=handle.queryPermission?await handle.queryPermission({mode:'readwrite'}):'granted';
+      if(permission==='granted')await loadHandle(handle);
+      else status('Un fichier de base est lié. Clique sur « Charger un fichier local » pour renouveler son autorisation.');
+    }catch(e){status('Le fichier lié n’a pas pu être rechargé : '+e.message,true);}
   }
   async function writeDatabase() {
     if(!fileHandle) { download(JSON.stringify(dbObject(),null,2),'nba_players_2025-26.json','application/json'); return; }
@@ -133,7 +169,7 @@
   $('linkFile').onclick=chooseDatabase;
   $('createFile').onclick=async()=> {
     if(!('showSaveFilePicker' in window)){alert('La création directe exige un navigateur compatible avec File System Access. Utilise Exporter la base JSON pour télécharger le fichier.');return;}
-    try {fileHandle=await window.showSaveFilePicker({suggestedName:'nba_players_2025-26.json',types:[{description:'Base de joueurs JSON',accept:{'application/json':['.json']}}]});await writeDatabase();status('Fichier de base créé / lié et sauvegardé.');}
+    try {fileHandle=await window.showSaveFilePicker({suggestedName:'nba_players_2025-26.json',types:[{description:'Base de joueurs JSON',accept:{'application/json':['.json']}}]});await handleStore('put',fileHandle);await writeDatabase();status('Fichier de base créé / lié et sauvegardé.');}
     catch(e){if(e.name!=='AbortError')status('Création du fichier impossible : '+e.message,true);}
   };
   $('importFile').onchange=async e=>{
@@ -211,9 +247,8 @@
     const active=teamLine.filter(Boolean);
     const raw=active.map(p=>({playerId:p.id,name:p.name,team:p.team,pos:p.pos,mp:0,pts:0,fg:0,fga:0,fg3:0,fg3a:0,ft:0,fta:0,orb:0,drb:0,trb:0,ast:0,stl:0,blk:0,tov:0,pf:0,plusMinus:null,
       ts:p.stats.shooting.tsPct,three:p.stats.perGame.fg3Pct,fgPct:p.stats.perGame.fgPct,ftPct:p.stats.perGame.ftPct,mpg:avg(p,'mp',30),usage:p.stats.advanced.usgPct}));
-    const minuteWeights=raw.map(p=>Math.max(1,Math.min(44,p.mpg)));
-    const sum=minuteWeights.reduce((a,b)=>a+b,0);
-    raw.forEach((p,i)=>p.mp=minuteWeights[i]/sum*240);
+    // The current engine has no substitutions: the five selected starters play all 48 minutes.
+    raw.forEach(p=>p.mp=48);
     return raw;
   }
   function chooseWeighted(items, weightFn) {
@@ -322,4 +357,5 @@
   loadLocal();
   if(!localStorage.getItem(DATA_KEY)) persistLocal(); // initialize a valid empty database without overwriting an existing one
   render();renderHistory();renderSeason();
+  restoreLinkedDatabase();
 })();
