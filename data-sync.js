@@ -12,13 +12,35 @@
   ];
   const lastSyncKey = 'nbaSimLab.lastSync.v1';
   const settingsKey = 'nbaSimLab.syncIntervalHours.v1';
+  const seasonSettingsKey = 'nbaSimLab.syncSeasonYear.v1';
   const statusEl = () => document.getElementById('syncReport');
   const setMessage = (message, bad = false) => {
     const el = statusEl();
     if (el) { el.textContent = message; el.className = bad ? 'notice' : 'muted'; }
   };
-  const interval = () => Number(document.getElementById('syncInterval')?.value ?? localStorage.getItem(settingsKey) ?? 24);
-  const seasonYear = () => Number(document.getElementById('syncSeason')?.value || 2026);
+  const validIntervals = [0, 6, 24, 168];
+  const interval = () => {
+    const saved = localStorage.getItem(settingsKey);
+    const selected = saved !== null ? Number(saved) : Number(document.getElementById('syncInterval')?.value ?? 24);
+    return validIntervals.includes(selected) ? selected : 24;
+  };
+  const seasonYear = () => {
+    const saved = localStorage.getItem(seasonSettingsKey);
+    const selected = Number(saved !== null ? saved : document.getElementById('syncSeason')?.value || 2026);
+    return Number.isInteger(selected) && selected >= 1947 && selected <= 2100 ? selected : 2026;
+  };
+  function restoreSettings() {
+    const intervalSelect = document.getElementById('syncInterval');
+    const savedInterval = localStorage.getItem(settingsKey);
+    if (intervalSelect && savedInterval !== null && validIntervals.includes(Number(savedInterval))) intervalSelect.value = String(Number(savedInterval));
+    const seasonInput = document.getElementById('syncSeason');
+    const savedSeason = localStorage.getItem(seasonSettingsKey);
+    if (seasonInput && savedSeason !== null) {
+      const year = Number(savedSeason);
+      if (Number.isInteger(year) && year >= 1947 && year <= 2100) seasonInput.value = String(year);
+    }
+  }
+  restoreSettings();
   const toCsv = value => {
     if (typeof value !== 'string') throw new Error('La source n’a pas renvoyé de CSV valide.');
     return value;
@@ -81,7 +103,14 @@
     if (target) target.innerHTML = '<p class="notice">' + escapeHtml(event.detail.message) + '</p>';
   });
   document.getElementById('syncData')?.addEventListener('click', () => sync());
-  document.getElementById('syncInterval')?.addEventListener('change', event => localStorage.setItem(settingsKey, event.target.value));
+  document.getElementById('syncInterval')?.addEventListener('change', event => {
+    const selected = Number(event.target.value);
+    if (validIntervals.includes(selected)) localStorage.setItem(settingsKey, String(selected));
+  });
+  document.getElementById('syncSeason')?.addEventListener('change', event => {
+    const selected = Number(event.target.value);
+    if (Number.isInteger(selected) && selected >= 1947 && selected <= 2100) localStorage.setItem(seasonSettingsKey, String(selected));
+  });
   window.NBADataSync = { sync, categories };
   // At startup, attempt a quiet sync only when the backend is installed and the configured interval elapsed.
   window.addEventListener('load', async () => {
