@@ -144,16 +144,26 @@
     const offense=perPlayer.map((p,i)=>({p,i,w:Math.max(.2,(p.usage??20)/20)*Math.max(.35,(avg(active[i],'pts',12)/18))}));const weightSum=offense.reduce((a,b)=>a+b.w,0);
     const expectedAttempts=possessions*.88;let score=0;
     for(let n=0;n<Math.round(expectedAttempts);n++){
-      const shooter=weighted(offense);const p=shooter.p; p.fga++;
+      const shooter=weighted(offense);const p=shooter.p;
+      // A turnover ends the possession before a shot; steals are credited to a defender.
+      if(Math.random()<.115){p.tov++;if(Math.random()<.28){const defender=perPlayer[(shooter.i+1+Math.floor(Math.random()*(perPlayer.length-1)))%perPlayer.length];defender.stl++;}continue;}
+      p.fga++;
       const skill=p.ts??Math.max(.42,Math.min(.68,(avg(active[shooter.i],'pts',12)/25)*.52));const hot=1+(Math.random()-.5)*(variance/100)*.42;
-      const threeRate=p.three??0.34;const is3=Math.random()<Math.max(.05,Math.min(.62,threeRate*1.25));let made=Math.random()<Math.max(.22,Math.min(.75,skill*hot*(is3?.96:1)));
-      if(is3){p.fg3a++;if(made)p.fg3++;}if(made){p.fg++;score+=is3?3:2;p.pts+=is3?3:2;}
-      if(Math.random()<.12){p.fta++;if(Math.random()<Math.max(.55,Math.min(.94,p.fgPct??.77))){p.ft++;p.pts++;score++;}}
-      if(Math.random()<.14){p.tov++;} else if(Math.random()<.23){p.ast++;}
-      if(Math.random()<.045)p.pf++;
-      if(Math.random()<.025)p.stl++;
-      if(Math.random()<.018)p.blk++;
-      if(Math.random()<.21){p.drb++;p.trb++;}else if(Math.random()<.09){p.orb++;p.trb++;}
+      const threeRate=p.three??0.34;const is3=Math.random()<Math.max(.05,Math.min(.62,threeRate*1.25));
+      const made=Math.random()<Math.max(.22,Math.min(.75,skill*hot*(is3?.96:1)));
+      if(is3){p.fg3a++;if(made)p.fg3++;}
+      if(made){
+        p.fg++;score+=is3?3:2;p.pts+=is3?3:2;
+        if(Math.random()<.62){const passer=weighted(offense.filter(x=>x.i!==shooter.i));passer.p.ast++;}
+      } else {
+        // Rebound is recorded only after a missed field goal; blocks are a subset of misses.
+        const blocked=Math.random()<.055;
+        if(blocked){const defender=perPlayer[(shooter.i+1+Math.floor(Math.random()*(perPlayer.length-1)))%perPlayer.length];defender.blk++;}
+        const rebounder=perPlayer[Math.floor(Math.random()*perPlayer.length)];
+        if(Math.random()<.24){rebounder.orb++;rebounder.trb++;}else{rebounder.drb++;rebounder.trb++;}
+      }
+      if(Math.random()<.105){p.pf++;p.fta+=2;for(let ft=0;ft<2;ft++)if(Math.random()<Math.max(.50,Math.min(.94,p.fgPct??.77))){p.ft++;p.pts++;score++;}}
+      if(Math.random()<.035)p.pf++;
     }
     // Reconcile the final team score exclusively from player points.
     score=perPlayer.reduce((s,p)=>s+p.pts,0);
@@ -173,6 +183,7 @@
     if(teams.some(t=>t.filter(Boolean).length!==5)){status('Il faut cinq titulaires pour chacune des deux équipes avant de simuler.',true);return;}
     const n=+$('possessions').value,variance=+$('variance').value;
     const a=boxScore(teams[0],n,variance),b=boxScore(teams[1],n,variance);
+    a.players.forEach(p=>p.plusMinus=a.score-b.score); b.players.forEach(p=>p.plusMinus=b.score-a.score);
     // Keep each side's player points exactly equal to its displayed team score.
     const game={id:crypto.randomUUID?crypto.randomUUID():String(Date.now()),season:SEASON,date:new Date().toISOString(),type:'played',possessions:n,variance,lines:[{label:'Équipe A',score:a.score,players:a.players},{label:'Équipe B',score:b.score,players:b.players}]};
     latestGame=game;history.push(game);if(a.score>b.score)wins++;else if(a.score<b.score)losses++;persistLocal();
