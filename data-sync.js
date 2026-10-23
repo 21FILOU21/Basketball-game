@@ -17,7 +17,7 @@
     const el = statusEl();
     if (el) { el.textContent = message; el.className = bad ? 'notice' : 'muted'; }
   };
-  const interval = () => Number(document.getElementById('syncInterval')?.value || localStorage.getItem(settingsKey) || 24);
+  const interval = () => Number(document.getElementById('syncInterval')?.value ?? localStorage.getItem(settingsKey) ?? 24);
   const seasonYear = () => Number(document.getElementById('syncSeason')?.value || 2026);
   const toCsv = value => {
     if (typeof value !== 'string') throw new Error('La source n’a pas renvoyé de CSV valide.');
@@ -90,7 +90,7 @@
       if (!response.ok) return;
       const saved = JSON.parse(localStorage.getItem(lastSyncKey) || 'null');
       const elapsedHours = saved?.completedAt ? (Date.now() - Date.parse(saved.completedAt)) / 3_600_000 : Infinity;
-      if (!saved || saved.season !== seasonYear() || elapsedHours >= interval()) await sync({ automatic: true });
+      if (interval() > 0 && (!saved || saved.season !== seasonYear() || elapsedHours >= interval())) await sync({ automatic: true });
     } catch (_) { /* Static hosting without a backend is expected; manual imports remain available. */ }
   });
 })();
