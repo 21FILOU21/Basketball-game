@@ -192,7 +192,7 @@
       const fields=['fg','fga','fg3','fg3a','ft','fta','orb','drb','trb','ast','stl','blk','tov','pf','pts'];
       if(group==='perGame')return {...base,gp:get('g','gp'),gs:get('gs'),mp:get('mp','mp_per_g'),pts:get('pts','pts_per_g'),fg:get('fg','fg_per_g'),fga:get('fga','fga_per_g'),fg_pct:get('fg_pct'),fg3:get('x3p','fg3','3p'),fg3a:get('x3pa','fg3a','3pa'),fg3_pct:get('x3p_pct','fg3_pct','3p_pct'),ft:get('ft','ft_per_g'),fta:get('fta','fta_per_g'),ft_pct:get('ft_pct'),orb:get('orb','orb_per_g'),drb:get('drb','drb_per_g'),trb:get('trb','trb_per_g'),ast:get('ast','ast_per_g'),stl:get('stl','stl_per_g'),blk:get('blk','blk_per_g'),tov:get('tov','tov_per_g'),pf:get('pf','pf_per_g'),efg_pct:get('efg_pct'),ts_pct:get('ts_pct'),three_par:get('x3p_ar','3par','3p_ar'),f_tr:get('f_tr','ftr'),stats:{shooting:{efgPct:get('efg_pct'),tsPct:get('ts_pct'),threePar:get('x3p_ar','3par','3p_ar'),fTr:get('f_tr','ftr'),dist:get('dist')}}};
       const raw={};
-      if(group==='perMinute'||group==='perPossession'){for(const k of fields)raw[k]=get(k==='fg3'?'x3p':k==='fg3a'?'x3pa':k);return {...base,stats:{[group]:raw,units:{[group]:group==='perMinute'?'per_minute':'per_100_possessions'}}};}
+      if(group==='perMinute'||group==='perPossession'){for(const k of fields)raw[k]=get(...(k==='fg3'?['x3p','fg3','3p']:k==='fg3a'?['x3pa','fg3a','3pa']:[k]));return {...base,stats:{[group]:raw,units:{[group]:group==='perMinute'?'per_minute':'per_100_possessions'}}};}
       if(group==='advanced'){
         const aliases={per:['per'],usgPct:['usg_pct'],astPct:['ast_pct'],trbPct:['trb_pct'],orbPct:['orb_pct'],drbPct:['drb_pct'],stlPct:['stl_pct'],blkPct:['blk_pct'],tovPct:['tov_pct'],ows:['ows'],dws:['dws'],ws:['ws'],ws48:['ws_48'],obpm:['obpm'],dbpm:['dbpm'],bpm:['bpm'],vorp:['vorp'],offRtg:['ortg','off_rtg'],defRtg:['drtg','def_rtg']};
         for(const [k,a] of Object.entries(aliases))raw[k]=get(...a);return {...base,stats:{advanced:raw}};
@@ -202,7 +202,9 @@
         for(const [k,a] of Object.entries(aliases))raw[k]=get(...a);return {...base,stats:{shooting:raw}};
       }
       const aliases={plusMinus:['plus_minus'],offCourt:['off_court'],defCourt:['def_court'],drawnFouls:['drawn_shooting_fouls'],blockedShots:['blkd']};
-      for(const [k,a] of Object.entries(aliases))raw[k]=get(...a);return {...base,stats:{playByPlay:raw}};
+      for(const [k,a] of Object.entries(aliases))raw[k]=get(...a);
+      raw.positionEstimate={PG:get('pg_pct'),SG:get('sg_pct'),SF:get('sf_pct'),PF:get('pf_pct'),C:get('c_pct')};
+      return {...base,stats:{playByPlay:raw}};
     }).filter(Boolean);
   }
   function createBoxPlayers(teamLine) {
