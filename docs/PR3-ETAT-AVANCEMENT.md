@@ -259,3 +259,11 @@ Aucun nombre de lignes, saison ou joueur n'est déclaré récupéré : **0 ligne
 1. Le propriétaire crée un jeton NBA Stat via son profil, confirme que l'usage envisagé reste personnel/non commercial, puis le configure **uniquement dans l'environnement du serveur** sous `NBASTAT_API_TOKEN` (ne pas envoyer le secret dans le chat).
 2. Ajouter un adaptateur minimal côté serveur, sans modifier `main` directement, puis tester un endpoint historique documenté et consigner le statut HTTP réel, les champs, la saison, les joueurs et les lignes valides.
 3. Si la réponse est valide, établir le mapping de colonnes avant toute fusion/sauvegarde; si les conditions d'utilisation ne conviennent pas, obtenir une permission écrite ou choisir un fournisseur licencié.
+
+
+### Métadonnées de cette mise à jour documentaire
+
+- Branche : `fix/pr3-sync-audit`.
+- Commit qui ajoute le présent compte rendu : `fa784aaddae81d3cf9e597b37f1eb221e2001962`.
+- Fichier modifié par ce commit : `docs/PR3-ETAT-AVANCEMENT.md` uniquement.
+- Le run CI #15 a validé le code et les tests du SHA `b3a3562fd5aed2f20cfa51ac12c916f45b681b68`, avant ce changement documentaire. Le workflow ne déclenche pas les pushes sur `fix/pr3-sync-audit` en dehors d'un événement PR; ce nouveau commit documentaire n'a donc pas de test CI associé confirmé.
