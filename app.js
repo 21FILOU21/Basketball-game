@@ -124,6 +124,11 @@
   $('reset').onclick=()=>{if(!confirm('Vider la base locale et les compositions ? Cette action ne supprime pas les fichiers exportés.'))return;players=[];teams=[Array(5).fill(null),Array(5).fill(null)];selectedTeam=null;render();persistLocal();status('Base locale vidée. Les sauvegardes exportées restent intactes.');};
   $('export').onclick=async()=>{try{await writeDatabase();status('Base exportée/sauvegardée : '+players.length+' joueurs.');}catch(e){status('Export impossible : '+e.message,true);}};
   $('linkFile').onclick=chooseDatabase;
+  $('createFile').onclick=async()=> {
+    if(!('showSaveFilePicker' in window)){alert('La création directe exige un navigateur compatible avec File System Access. Utilise Exporter la base JSON pour télécharger le fichier.');return;}
+    try {fileHandle=await window.showSaveFilePicker({suggestedName:'nba_players_2025-26.json',types:[{description:'Base de joueurs JSON',accept:{'application/json':['.json']}}]});await writeDatabase();status('Fichier de base créé / lié et sauvegardé.');}
+    catch(e){if(e.name!=='AbortError')status('Création du fichier impossible : '+e.message,true);}
+  };
   $('importFile').onchange=async e=>{const files=[...e.target.files||[]];if(!files.length)return;let merged=new Map(players.map(p=>[p.id,p]));let added=0,updated=0,errors=[];
     for(const f of files){try{const txt=await f.text();let data;if(f.name.toLowerCase().endsWith('.csv')||f.name.toLowerCase().endsWith('.txt'))data=parseCSV(txt);else{data=safeJSON(txt);if(data.players)data=data.players;}if(!Array.isArray(data))throw new Error('Le fichier doit contenir un tableau de joueurs.');for(let i=0;i<data.length;i++){const p=normalizePlayer(data[i],i);const key=p.name.toLowerCase()+'|'+p.team.toLowerCase()+'|'+p.season;const old=merged.get(key)||merged.get(p.id);if(old){merged.set(old.id,{...old,...p,id:old.id,stats:mergeStats(old.stats,p.stats)});updated++;}else{merged.set(key,p);added++;}}}catch(err){errors.push(f.name+': '+err.message);}}
     if(added+updated===0 && errors.length){status('Import échoué sans modifier la base. '+errors.join(' | '),true);e.target.value='';return;}
