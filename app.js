@@ -26,6 +26,10 @@
   function normalizePlayer(p, idx=0) {
     const s=blankStats(), incoming=p.stats||{};
     for(const group of Object.keys(s)) if(incoming[group] && typeof incoming[group]==='object') s[group]={...s[group],...incoming[group]};
+    for(const group of Object.keys(s)) if(s[group] && typeof s[group]==='object') for(const [key,value] of Object.entries(s[group])) {
+      if(value===null || value===undefined || value==='') s[group][key]=null;
+      else if(typeof value==='string' && num(value)!==null) s[group][key]=num(value);
+    }
     const pg=s.perGame;
     const map={gp:['gp','games','games_played'],gs:['gs','games_started'],mp:['mp','mpg','minutes'],pts:['pts','points'],fg:['fg','fgm'],fga:['fga'],fgPct:['fg_pct','fgPct'],fg3:['fg3','fg3m','3p'],fg3a:['fg3a','3pa'],fg3Pct:['fg3_pct','three','threePointPct'],ft:['ft','ftm'],fta:['fta'],ftPct:['ft_pct'],orb:['orb'],drb:['drb'],trb:['trb','reb','rebounds'],ast:['ast','assists'],stl:['stl','steals'],blk:['blk','blocks'],tov:['tov','turnovers'],pf:['pf','fouls']};
     for(const [dest,aliases] of Object.entries(map)) { let v=pg[dest]; if(v===undefined || v===null) for(const a of aliases) if(p[a]!==undefined){v=p[a];break;} pg[dest]=num(v); }
@@ -40,7 +44,7 @@
       for(const field of fields) { const raw=p[group+'_'+field] ?? p[field+'_'+(group==='perMinute'?'per_minute':'per_100_poss')]; if(raw!==undefined && s[group][field]==null)s[group][field]=num(raw); }
     }
     const id=String(p.id ?? [p.name||p.player||'unknown',p.team||p.tm||'UNK',p.season||SEASON].join('|')).trim();
-    return {id,name:String(p.name||p.player||p.Player||'Joueur inconnu').trim(),team:String(p.team||p.tm||p.teamAbbreviation||'UNK').trim(),pos:String(p.pos||p.position||'—').trim(),age:num(p.age),season:String(p.season||SEASON),source:String(p.source||'Import utilisateur'),updatedAt:p.updatedAt||null,stats:s};
+    return {id,name:String(p.name||p.player||p.Player||'Joueur inconnu').trim(),team:String(p.team||p.tm||p.teamAbbreviation||'UNK').trim(),pos:String(p.pos||p.position||'—').trim(),age:num(p.age),season:String(p.season||SEASON),source:String(p.source||'Import utilisateur'),updatedAt:p.updatedAt||null,rawTables:p.rawTables||{},stats:s};
   }
   function fromLegacy(p,i) { const n=normalizePlayer(p,i); if(!n.stats.perGame.pts && p.pts!=null)n.stats.perGame.pts=num(p.pts); if(!n.stats.perGame.trb && p.reb!=null)n.stats.perGame.trb=num(p.reb); if(!n.stats.perGame.ast && p.ast!=null)n.stats.perGame.ast=num(p.ast); if(!n.stats.perGame.mp && p.mpg!=null)n.stats.perGame.mp=num(p.mpg); if(!n.stats.shooting.tsPct && p.ts!=null)n.stats.shooting.tsPct=rate(p.ts); if(!n.stats.perGame.fg3Pct && p.three!=null)n.stats.perGame.fg3Pct=rate(p.three); return n; }
   function fromStored(raw) { if(!raw || raw.schemaVersion!==2 || !Array.isArray(raw.players)) throw new Error('Structure de base non reconnue. Le fichier original est conservé; importez un JSON compatible.'); return raw.players.map((p,i)=>normalizePlayer(p,i)); }
@@ -49,11 +53,12 @@
   function loadLocal() {
     try { const raw=localStorage.getItem(DATA_KEY); if(raw) players=fromStored(safeJSON(raw)); }
     catch(e) { status('La base locale est illisible. Aucune donnée n’a été écrasée. '+e.message,true); }
-    try { history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); if(!Array.isArray(history))history=[]; } catch {history=[];}
+    try { history=JSON.parse(localStorage.getItem(HISTORY_KEY)||'[]'); if(!Array.isArray(history))throw new Error('L’historique ne contient pas un tableau.'); }
+    catch(e) { const raw=localStorage.getItem(HISTORY_KEY);if(raw!==null)localStorage.setItem(HISTORY_KEY+'.corrupt-backup',raw);history=[];status('Historique illisible : copie brute conservée. '+e.message,true); }
     try {
-      const state=JSON.parse(localStorage.getItem(SEASON_KEY)||'{}'); wins=state.wins||0;losses=state.losses||0;
+      const state=JSON.parse(localStorage.getItem(SEASON_KEY)||'{}'); wins=Number(state.wins)||0;losses=Number(state.losses)||0;
       if(Array.isArray(state.teams) && players.length) teams=state.teams.map(line=>Array.from({length:5},(_,i)=>players.find(p=>p.id===line[i])||null));
-    } catch {}
+    } catch(e) { const raw=localStorage.getItem(SEASON_KEY);if(raw!==null)localStorage.setItem(SEASON_KEY+'.corrupt-backup',raw);status('Sauvegarde de saison illisible : copie brute conservée. '+e.message,true); }
   }
   function status(msg,bad=false) { const el=$('dataStatus'); if(el){el.textContent=msg;el.className=bad?'notice':'muted';} }
   async function chooseDatabase() {
@@ -66,6 +71,7 @@
       const file=await handle.getFile();
       const parsed=safeJSON(await file.text());
       players=fromStored(parsed); fileHandle=handle;
+      teams=teams.map(line=>line.map(old=>old?players.find(p=>p.id===old.id)||null:null));
       render(); persistLocal(); status('Base chargée depuis '+file.name+' — '+players.length+' joueurs.');
     } catch(e) {
       if(e.name==='AbortError') return;
@@ -129,18 +135,74 @@
     try {fileHandle=await window.showSaveFilePicker({suggestedName:'nba_players_2025-26.json',types:[{description:'Base de joueurs JSON',accept:{'application/json':['.json']}}]});await writeDatabase();status('Fichier de base créé / lié et sauvegardé.');}
     catch(e){if(e.name!=='AbortError')status('Création du fichier impossible : '+e.message,true);}
   };
-  $('importFile').onchange=async e=>{const files=[...e.target.files||[]];if(!files.length)return;let merged=new Map(players.map(p=>[p.id,p]));let added=0,updated=0,errors=[];
-    for(const f of files){try{const txt=await f.text();let data;if(f.name.toLowerCase().endsWith('.csv')||f.name.toLowerCase().endsWith('.txt'))data=parseCSV(txt);else{data=safeJSON(txt);if(data.players)data=data.players;}if(!Array.isArray(data))throw new Error('Le fichier doit contenir un tableau de joueurs.');for(let i=0;i<data.length;i++){const p=normalizePlayer(data[i],i);const key=p.name.toLowerCase()+'|'+p.team.toLowerCase()+'|'+p.season;const old=merged.get(key)||merged.get(p.id);if(old){merged.set(old.id,{...old,...p,id:old.id,stats:mergeStats(old.stats,p.stats)});updated++;}else{merged.set(key,p);added++;}}}catch(err){errors.push(f.name+': '+err.message);}}
-    if(added+updated===0 && errors.length){status('Import échoué sans modifier la base. '+errors.join(' | '),true);e.target.value='';return;}
-    players=[...merged.values()];players=players.map((p,i)=>normalizePlayer(p,i));teams=[Array(5).fill(null),Array(5).fill(null)];render();persistLocal();try{await writeDatabase();}catch(err){status('Import en mémoire effectué, mais écriture du fichier échouée : '+err.message,true);}
+  $('importFile').onchange=async e=>{
+    const files=[...e.target.files||[]];if(!files.length)return;
+    const identity=p=>[p.name,p.team,p.season].map(v=>String(v||'').trim().toLowerCase()).join('|');
+    let merged=new Map(players.map(p=>[identity(p),p]));let added=0,updated=0,errors=[];
+    for(const f of files){
+      try{
+        const txt=await f.text();let data;
+        if(/\\.(csv|txt)$/i.test(f.name))data=parseCSV(txt,f.name);
+        else{data=safeJSON(txt);if(data.players)data=data.players;}
+        if(!Array.isArray(data))throw new Error('Le fichier doit contenir un tableau de joueurs.');
+        // Basketball-Reference may emit a TOT aggregate row alongside team rows.
+        const totalNames=new Set(data.filter(p=>String(p.team||p.tm||'').toUpperCase()==='TOT').map(p=>String(p.name||p.player||'').trim().toLowerCase()));
+        data=data.filter(p=>String(p.team||p.tm||'').toUpperCase()==='TOT'||!totalNames.has(String(p.name||p.player||'').trim().toLowerCase()));
+        for(let i=0;i<data.length;i++){
+          const p=normalizePlayer(data[i],i);
+          if(p.team.toUpperCase()==='TOT')p.team='MULTI';
+          const key=identity(p),old=merged.get(key);
+          if(old){
+            merged.set(key,{...old,...p,id:old.id,rawTables:{...(old.rawTables||{}),...(p.rawTables||{})},stats:mergeStats(old.stats,p.stats)});
+            updated++;
+          }else{merged.set(key,p);added++;}
+        }
+      }catch(err){errors.push(f.name+': '+err.message);}
+    }
+    if(added+updated===0&&errors.length){status('Import échoué sans modifier la base. '+errors.join(' | '),true);e.target.value='';return;}
+    const selectedIds=teams.map(line=>line.map(p=>p?.id||null));
+    players=[...merged.values()].map((p,i)=>normalizePlayer(p,i));
+    teams=selectedIds.map(line=>line.map(id=>id?players.find(p=>p.id===id)||null:null));
+    render();persistLocal();
+    try{await writeDatabase();}catch(err){status('Import en mémoire effectué, mais écriture du fichier échouée : '+err.message,true);}
     status('Import terminé — '+added+' nouveaux, '+updated+' mis à jour, '+players.length+' joueurs en base. '+(errors.length?'Erreurs : '+errors.join(' | '):'Aucune erreur.'));
     e.target.value='';
   };
-  function mergeStats(a,b){const out=blankStats();for(const g of Object.keys(out))out[g]={...(a?.[g]||{}),...(b?.[g]||{})};return out;}
-  function parseCSV(text) {
-    const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(x=>x.trim());if(lines.length<2)throw new Error('CSV vide ou sans lignes de données.');
-    const parseLine=line=>{const out=[];let cur='',quote=false;for(let i=0;i<line.length;i++){const c=line[i];if(c==='"'&&line[i+1]==='"'&&quote){cur+='"';i++;}else if(c==='"')quote=!quote;else if(c===','&&!quote){out.push(cur.trim());cur='';}else cur+=c;}out.push(cur.trim());return out;};
-    const headers=parseLine(lines[0]).map(h=>h.toLowerCase().replace(/[%]/g,'_pct').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''));return lines.slice(1).map(line=>{const vals=parseLine(line),o={};headers.forEach((h,i)=>o[h]=vals[i]??'');const get=(...keys)=>{for(const k of keys)if(o[k]!==undefined&&o[k]!=='')return o[k];return null;};return {name:get('player','name'),team:get('tm','team'),pos:get('pos','position'),age:get('age'),season:SEASON,source:'Import CSV — '+new Date().toISOString(),gp:get('g','gp'),gs:get('gs'),mp:get('mp','mp_per_g'),pts:get('pts','pts_per_g'),fg:get('fg','fg_per_g'),fga:get('fga','fga_per_g'),fg_pct:get('fg_pct'),fg3:get('x3p','fg3','3p'),fg3a:get('x3pa','fg3a','3pa'),fg3_pct:get('x3p_pct','fg3_pct','3p_pct'),ft:get('ft','ft_per_g'),fta:get('fta','fta_per_g'),ft_pct:get('ft_pct'),orb:get('orb','orb_per_g'),drb:get('drb','drb_per_g'),trb:get('trb','trb_per_g'),ast:get('ast','ast_per_g'),stl:get('stl','stl_per_g'),blk:get('blk','blk_per_g'),tov:get('tov','tov_per_g'),pf:get('pf','pf_per_g'),per:get('per'),usg_pct:get('usg_pct'),ows:get('ows'),dws:get('dws'),ws:get('ws'),bpm:get('bpm'),obpm:get('obpm'),dbpm:get('dbpm'),vorp:get('vorp'),ws48:get('ws_48'),ts_pct:get('ts_pct'),efg_pct:get('efg_pct')};});
+  function mergeStats(a,b){
+    const out=blankStats();
+    for(const g of Object.keys(out)){
+      out[g]={...(a?.[g]||{}),...(b?.[g]||{})};
+      for(const [k,v] of Object.entries(b?.[g]||{}))if(v===null||v===undefined||v==='')out[g][k]=(a?.[g]||{})[k]??null;
+    }
+    return out;
+  }
+  function parseCSV(text,filename=''){
+    const lines=text.replace(/^\\uFEFF/,'').split(/\\r?\\n/).filter(x=>x.trim());
+    if(lines.length<2)throw new Error('CSV vide ou sans lignes de données.');
+    const parseLine=line=>{const out=[];let cur='',quote=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'&&line[i+1]==='"'&&quote){cur+='"';i++;}else if(ch==='"')quote=!quote;else if(ch===','&&!quote){out.push(cur.trim());cur='';}else cur+=ch;}out.push(cur.trim());return out;};
+    const headers=parseLine(lines[0]).map(h=>h.toLowerCase().replace(/[%]/g,'_pct').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''));
+    const file=filename.toLowerCase().replace(/[^a-z0-9]+/g,'_');
+    const group=file.includes('per_minute')||file.includes('per_min')?'perMinute':file.includes('per_poss')||file.includes('per_100')?'perPossession':file.includes('advanced')?'advanced':file.includes('shooting')?'shooting':file.includes('play_by_play')?'playByPlay':'perGame';
+    return lines.slice(1).map(line=>{
+      const vals=parseLine(line),o={};headers.forEach((h,i)=>o[h]=vals[i]??'');
+      const get=(...keys)=>{for(const k of keys)if(o[k]!==undefined&&o[k]!=='')return o[k];return null;};
+      const name=get('player','name');if(!name)return null;
+      const team=get('tm','team'),base={name,team,pos:get('pos','position'),age:get('age'),season:SEASON,source:'Basketball-Reference CSV ('+group+')',rawTables:{[group]:o}};
+      const fields=['fg','fga','fg3','fg3a','ft','fta','orb','drb','trb','ast','stl','blk','tov','pf','pts'];
+      if(group==='perGame')return {...base,gp:get('g','gp'),gs:get('gs'),mp:get('mp','mp_per_g'),pts:get('pts','pts_per_g'),fg:get('fg','fg_per_g'),fga:get('fga','fga_per_g'),fg_pct:get('fg_pct'),fg3:get('x3p','fg3','3p'),fg3a:get('x3pa','fg3a','3pa'),fg3_pct:get('x3p_pct','fg3_pct','3p_pct'),ft:get('ft','ft_per_g'),fta:get('fta','fta_per_g'),ft_pct:get('ft_pct'),orb:get('orb','orb_per_g'),drb:get('drb','drb_per_g'),trb:get('trb','trb_per_g'),ast:get('ast','ast_per_g'),stl:get('stl','stl_per_g'),blk:get('blk','blk_per_g'),tov:get('tov','tov_per_g'),pf:get('pf','pf_per_g'),efg_pct:get('efg_pct'),ts_pct:get('ts_pct'),three_par:get('x3p_ar','3par','3p_ar'),f_tr:get('f_tr','ftr')};
+      const raw={};
+      if(group==='perMinute'||group==='perPossession'){for(const k of fields)raw[k]=get(k==='fg3'?'x3p':k==='fg3a'?'x3pa':k);return {...base,stats:{[group]:raw,units:{[group]:group==='perMinute'?'per_minute':'per_100_possessions'}}};}
+      if(group==='advanced'){
+        const aliases={per:['per'],usgPct:['usg_pct'],astPct:['ast_pct'],trbPct:['trb_pct'],orbPct:['orb_pct'],drbPct:['drb_pct'],stlPct:['stl_pct'],blkPct:['blk_pct'],tovPct:['tov_pct'],ows:['ows'],dws:['dws'],ws:['ws'],ws48:['ws_48'],obpm:['obpm'],dbpm:['dbpm'],bpm:['bpm'],vorp:['vorp'],offRtg:['ortg','off_rtg'],defRtg:['drtg','def_rtg']};
+        for(const [k,a] of Object.entries(aliases))raw[k]=get(...a);return {...base,stats:{advanced:raw}};
+      }
+      if(group==='shooting'){
+        const aliases={efgPct:['efg_pct'],tsPct:['ts_pct'],threePar:['x3p_ar','3par','3p_ar'],fTr:['f_tr','ftr'],dist:['dist'],corner3:['corner_3'],heave:['heave'],fgPct:['fg_pct'],fg3Pct:['x3p_pct','3p_pct'],ftPct:['ft_pct']};
+        for(const [k,a] of Object.entries(aliases))raw[k]=get(...a);return {...base,stats:{shooting:raw}};
+      }
+      const aliases={plusMinus:['plus_minus'],offCourt:['off_court'],defCourt:['def_court'],drawnFouls:['drawn_shooting_fouls'],blockedShots:['blkd']};
+      for(const [k,a] of Object.entries(aliases))raw[k]=get(...a);return {...base,stats:{playByPlay:raw}};
+    }).filter(Boolean);
   }
   function createBoxPlayers(teamLine) {
     const active=teamLine.filter(Boolean);
