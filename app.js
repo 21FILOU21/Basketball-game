@@ -6,7 +6,7 @@
   const DATA_KEY = 'nbaSimLab.database.v2';
   const HISTORY_KEY = 'nbaSimLab.history.v2';
   const SEASON_KEY = 'nbaSimLab.season.v2';
-  const SEASON = '2025-26';
+  let SEASON = '2025-26';
   const HANDLE_DB = 'nbaSimLab.fileHandles.v1';
   let players = [], teams = [Array(5).fill(null), Array(5).fill(null)], selectedTeam = null;
   let history = [], fileHandle = null, spinTurns = 0, wins = 0, losses = 0, latestGame = null;
@@ -165,7 +165,7 @@
   $('rawCategory')?.addEventListener('change',renderRawStatsTable);
   $('rawTeam')?.addEventListener('change',renderRawStatsTable);
   $('rawSearch')?.addEventListener('input',renderRawStatsTable);
-  document.addEventListener('nba:data-sync-start',e=>{if(e.detail?.season)$('dataSeason').textContent=String(e.detail.season-1)+'-'+String(e.detail.season).slice(-2);});
+  document.addEventListener('nba:data-sync-start',e=>{if(e.detail?.season){SEASON=String(e.detail.season-1)+'-'+String(e.detail.season).slice(-2);$('dataSeason').textContent=SEASON;}});
   document.addEventListener('nba:data-sync-complete',e=>{
     const {season,results}=e.detail||{};
     const identity=p=>[p.name,p.team,p.season].map(v=>String(v||'').trim().toLowerCase()).join('|');
