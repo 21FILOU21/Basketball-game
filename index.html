@@ -383,30 +383,7 @@
             </div><div id="slots"><p class="muted">Les compositions apparaîtront ici.</p></div></div>
         </section>
         <section class="panel">
-            <h2>04 — Simulation du match</h2>
-            <p>Simulation de possession simplifiée. Les probabilités sont estimées à partir du TS%, du volume de points,
-                du tir à 3 points et des tendances de forme simulées — ce n’est pas un moteur NBA officiel.</p>
-            <div class="stats">
-                <div class="stat"><b id="scoreA">0</b><span>Ton cinq</span></div>
-                <div class="stat"><b id="scoreB">0</b><span>Adversaire simulé</span></div>
-                <div class="stat"><b id="winner">—</b><span>Résultat</span></div>
-                <div class="stat"><b id="momentum">Neutre</b><span>Momentum de forme</span></div>
-                <div class="stat"><b id="Wins">0</b><span>Matchs gagnés</span></div>
-                <div class="stat"><b id="Loses">0</b><span>Matchs perdus</span></div>
-            </div>
-            <div class="controls" style="margin:14px 0"><label class="field">Possessions par équipe<select
-                        id="possessions">
-                        <option>60</option>
-                        <option selected>90</option>
-                        <option>100</option>
-                        <option>120</option>
-                    </select></label><label class="field">Variance hot/cold <span id="varianceValue">65%</span><input
-                        type="range" id="variance" min="0" max="100" value="65"></label><button class="btn primary"
-                    id="simulate">Simuler le match</button></div>
-            <div id="gameLog" class="muted">Le journal du match apparaîtra ici.</div><div id="leaders"></div><div id="boxScore"></div>
-        </section>
-        <section class="panel">
-            <h2>05 — Base de joueurs & stats</h2>
+            <h2>03 — Explorer la base et ses statistiques</h2>
             <div class="controls"><label class="field" style="flex:1">Rechercher<input id="search"
                         placeholder="Nom, équipe ou poste…"></label><label class="field">Trier par<select id="sort">
                         <option value="pts">Points</option>
@@ -433,6 +410,29 @@
                     <tbody id="playerTable"></tbody>
                 </table>
             </div>
+        </section>
+        <section class="panel">
+            <h2>04 — Simulation du match</h2>
+            <p>Simulation de possession simplifiée. Les probabilités sont estimées à partir du TS%, du volume de points,
+                du tir à 3 points et des tendances de forme simulées — ce n’est pas un moteur NBA officiel.</p>
+            <div class="stats">
+                <div class="stat"><b id="scoreA">0</b><span>Ton cinq</span></div>
+                <div class="stat"><b id="scoreB">0</b><span>Adversaire simulé</span></div>
+                <div class="stat"><b id="winner">—</b><span>Résultat</span></div>
+                <div class="stat"><b id="momentum">Neutre</b><span>Momentum de forme</span></div>
+                <div class="stat"><b id="Wins">0</b><span>Matchs gagnés</span></div>
+                <div class="stat"><b id="Loses">0</b><span>Matchs perdus</span></div>
+            </div>
+            <div class="controls" style="margin:14px 0"><label class="field">Possessions par équipe<select
+                        id="possessions">
+                        <option>60</option>
+                        <option selected>90</option>
+                        <option>100</option>
+                        <option>120</option>
+                    </select></label><label class="field">Variance hot/cold <span id="varianceValue">65%</span><input
+                        type="range" id="variance" min="0" max="100" value="65"></label><button class="btn primary"
+                    id="simulate">Simuler le match</button></div>
+            <div id="gameLog" class="muted">Le journal du match apparaîtra ici.</div><div id="leaders"></div><div id="boxScore"></div>
         </section>
         <section class="panel"><h2>05 — Historique des rencontres</h2><p>Chaque box score est conservé séparément. Les matchs simulés sont identifiés.</p><p><b id="historyCount">0</b> match(s) enregistré(s)</p><div id="historyList"></div></section>
         <section class="panel"><h2>06 — Statistiques individuelles de saison (simulation)</h2><p>Totaux et moyennes calculés à partir des box scores conservés. Les pourcentages sont recalculés depuis les tirs réussis et tentés.</p><div class="actions"><button class="btn" id="seasonRefresh">Recalculer les stats de saison</button><button class="btn" id="seasonExport">Exporter stats + historique JSON</button></div><div class="tablewrap"><table><thead><tr><th>Joueur</th><th>GP</th><th>PTS</th><th>PPG</th><th>REB</th><th>RPG</th><th>AST</th><th>APG</th><th>STL</th><th>BLK</th><th>TOV</th><th>MPG</th><th>FG%</th><th>3P%</th><th>FT%</th><th>eFG%</th><th>TS%</th></tr></thead><tbody id="seasonTable"></tbody></table></div></section>
