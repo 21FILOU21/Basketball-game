@@ -61,7 +61,7 @@ function extractTable(html, tableId) {
   }
   return null;
 }
-function tableToCsv(table) {
+function csvColumnCount(csv) {\n  const firstLine = String(csv).split(/\\r?\\n/)[0] || '';\n  let quoted = false, count = 1;\n  for (let i = 0; i < firstLine.length; i++) {\n    if (firstLine[i] === '"') {\n      if (quoted && firstLine[i + 1] === '"') i++;\n      else quoted = !quoted;\n    } else if (firstLine[i] === ',' && !quoted) count++;\n  }\n  return firstLine ? count : 0;\n}\nfunction tableToCsv(table) {
   const rowHtml = [...table.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr\s*>/gi)].map(m => m[1]);
   const rows = [];
   for (const row of rowHtml) {
@@ -133,7 +133,7 @@ async function fetchCategory(season, category) {
   const csv = tableToCsv(table);
   const lineCount = Math.max(0, csv.split(/\r?\n/).length - 1);
   if (lineCount < 1) throw Object.assign(new Error('Le tableau reçu ne contient aucune ligne de joueur.'), { statusCode: 502 });
-  const result = { season: String(season - 1) + '-' + String(season).slice(-2), category, source: 'Basketball-Reference', url, fetchedAt: new Date().toISOString(), rows: lineCount, csv };
+  const result = { season: String(season - 1) + '-' + String(season).slice(-2), category, source: 'Basketball-Reference', url, fetchedAt: new Date().toISOString(), rows: lineCount, columns: csvColumnCount(csv), csv };
   cache.set(key, { savedAt: Date.now(), result });
   return { ...result, cached: false };
 }
@@ -163,4 +163,4 @@ const server = http.createServer(async (req, res) => {
 if (require.main === module) {
   server.listen(PORT, HOST, () => console.log('NBA stats sync listening on http://' + HOST + ':' + PORT));
 }
-module.exports = { CATEGORY_PATHS, sourceUrl, decodeEntities, stripTags, attributes, extractTable, tableToCsv, fetchCategory, server };
+module.exports = { CATEGORY_PATHS, sourceUrl, decodeEntities, stripTags, attributes, extractTable, csvColumnCount, tableToCsv, fetchCategory, server };
