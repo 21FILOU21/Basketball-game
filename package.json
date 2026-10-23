@@ -1,0 +1,11 @@
+{
+  "name": "basketball-game",
+  "version": "1.0.0",
+  "private": true,
+  "description": "NBA Sim Lab with optional server-side NBA statistics synchronization",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test"
+  },
+  "engines": { "node": ">=20" }
+}
