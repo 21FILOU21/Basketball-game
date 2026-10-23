@@ -151,3 +151,31 @@ Vérifier le résultat final de GitHub Actions sur le SHA courant de la PR #4. S
 - Validation navigateur et hébergement : **NON TESTÉ**.
 
 La prochaine priorité demeure l'évaluation d'un fournisseur autorisé et l'essai d'un endpoint réel, en vérifiant sa documentation et ses conditions avant d'intégrer un adaptateur.
+
+## Audit complémentaire du backend — 2026-10-23
+
+### Correctif supplémentaire
+
+- `server.js` valide maintenant les paramètres de `GET /api/nba/stats` avant l'accès à la source.
+- Une saison invalide et une catégorie inconnue retournent HTTP 400 (requête invalide), au lieu d'être présentées comme une panne de la source HTTP 502.
+- `tests/data-sync.test.js` inclut maintenant un test Node d'intégration qui démarre le serveur local, vérifie `/api/health`, les paramètres invalides, une réponse HTML fixture et le maintien d'un refus HTTP 403.
+- Le test utilise une réponse fixture et un `fetch` amont simulé : il ne constitue pas une récupération de données NBA réelles.
+
+### Vérifications isolées sur le code GitHub courant
+
+Sur les versions récupérées de la branche `fix/pr3-sync-audit` :
+- Syntaxe par compilation `new Function(...)` de `app.js`, `data-sync.js`, `server.js` et `tests/data-sync.test.js` : **PASS**.
+- Contrôle des IDs HTML : aucun ID dupliqué; aucune référence statique `$('id')` de `app.js` manquante dans `index.html` (hors compteurs gérés séparément) : **PASS**.
+- Exécution isolée du gestionnaire de routes de `server.js` avec HTTP et source amont simulés : `/api/health` retourne 200 et huit catégories; catégorie inconnue retourne 400; saison invalide retourne 400; fixture retourne 200 avec 1 ligne et 4 colonnes; réponse amont 403 est préservée sans contournement : **PASS**.
+- Cette exécution isolée n'est pas équivalente à `npm test` et ne remplace pas la CI sur le SHA actuel.
+
+### CI après le correctif complémentaire
+
+Le run #10 cité plus haut a validé quatre tests sur un commit antérieur aux modifications complémentaires de `server.js` et du test de routes. Le test de routes ajouté depuis n'a pas encore de résultat CI confirmé. Le clone local demeure impossible dans cet environnement à cause de la résolution DNS de `github.com`; `npm test` local reste NON EXÉCUTÉ.
+
+### Problèmes restants prioritaires
+
+1. Obtenir une source dont les conditions d'utilisation autorisent explicitement l'intégration et tester un endpoint réel.
+2. Exécuter `npm test` sur le dernier SHA de la PR #4.
+3. Ajouter les tests de fusion/persistance, doublons, joueurs transférés et import partiel.
+4. Valider l'intégration avec navigateur et serveur hébergé avant de considérer le bouton fonctionnel de bout en bout.
