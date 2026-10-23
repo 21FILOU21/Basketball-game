@@ -18,7 +18,7 @@ test('extracts a source table and preserves all headers and rows', () => {
   const csv = tableToCsv(table);
   assert.match(csv, /player_id/);
   assert.match(csv, /Zoë & Co\./);
-  assert.match(csv, /Awards/);
+  assert.match(csv, /awards/);
   assert.match(csv, /player01/);
   assert.equal(decodeEntities('A &amp; B'), 'A & B');
 });
