@@ -368,7 +368,14 @@
         <div class="panel">
             <h2>01 — Base locale des joueurs NBA</h2>
             <p>La base utilise un schéma JSON versionné. Les données importées sont sauvegardées dans le navigateur; pour écrire un vrai fichier sur l’ordinateur, utilise « Lier / créer le fichier de base » et autorise l’accès proposé par le navigateur.</p>
-            <div class="notice">Les pages Basketball-Reference peuvent bloquer l’import direct depuis le navigateur (CORS / conditions d’accès). Télécharge les tableaux via Share & Export lorsque disponible, puis importe les CSV exportés. Les données de démonstration ne sont pas utilisées comme statistiques officielles.</div>
+            <div class="notice">La synchronisation automatique nécessite le service Node.js du projet. Si la source refuse l’accès, la catégorie est signalée comme indisponible et la base existante est conservée. L’import CSV/JSON reste disponible en solution de repli.</div>
+            <div class="controls" style="margin-top:12px">
+                <button class="btn orange" id="syncData">Prise de data</button>
+                <label class="field">Année de fin de saison<input id="syncSeason" type="number" min="1947" max="2100" value="2026"></label>
+                <label class="field">Synchronisation automatique<select id="syncInterval"><option value="0">Manuelle uniquement</option><option value="6">Toutes les 6 h</option><option value="24" selected>Toutes les 24 h</option><option value="168">Toutes les semaines</option></select></label>
+            </div>
+            <p id="syncReport" class="muted">Aucune synchronisation automatique confirmée. Clique sur « Prise de data » ou lance le service local.</p>
+            <div id="syncCategories"></div>
             <div class="actions" style="margin-top:13px"><label class="btn" for="importFile">Importer les exports Basketball-Reference</label><button class="btn" id="reset">Vider la base locale</button></div>
             <p id="dataStatus">Chargement de la base locale…</p>
             <div class="stats"><div class="stat"><b id="playerCount">0</b><span>Joueurs en base</span></div><div class="stat"><b id="teamCount">0</b><span>Équipes disponibles</span></div><div class="stat"><b id="avgTs">—</b><span>TS% moyen disponible</span></div><div class="stat"><b id="dataSeason">2025-26</b><span>Saison ciblée</span></div></div>
@@ -412,7 +419,18 @@
             </div>
         </section>
         <section class="panel">
-            <h2>04 — Simulation du match</h2>
+            <h2>04 — Toutes les statistiques importées</h2>
+            <p>Ce tableau affiche les colonnes brutes conservées pour la catégorie choisie, y compris les champs inconnus du schéma normalisé. Les données absentes restent vides.</p>
+            <div class="controls">
+                <label class="field">Catégorie<select id="rawCategory"><option value="totals">Totals</option><option value="perGame">Per Game</option><option value="perMinute">Per 36 Minutes</option><option value="perPossession">Per 100 Possessions</option><option value="advanced">Advanced</option><option value="playByPlay">Play-by-Play</option><option value="shooting">Shooting</option><option value="adjustedShooting">Adjusted Shooting</option></select></label>
+                <label class="field">Équipe<select id="rawTeam"><option value="">Toutes les équipes</option></select></label>
+                <label class="field" style="flex:1">Rechercher<input id="rawSearch" placeholder="Joueur ou valeur…"></label>
+            </div>
+            <p id="rawStatsSummary" class="muted">Aucune colonne brute disponible pour cette catégorie.</p>
+            <div class="tablewrap"><table><thead id="rawStatsHead"></thead><tbody id="rawStatsBody"></tbody></table></div>
+        </section>
+        <section class="panel">
+            <h2>05 — Simulation du match</h2>
             <p>Simulation de possession simplifiée. Les probabilités sont estimées à partir du TS%, du volume de points,
                 du tir à 3 points et des tendances de forme simulées — ce n’est pas un moteur NBA officiel.</p>
             <div class="stats">
@@ -434,11 +452,11 @@
                     id="simulate">Simuler le match</button></div>
             <div id="gameLog" class="muted">Le journal du match apparaîtra ici.</div><div id="leaders"></div><div id="boxScore"></div>
         </section>
-        <section class="panel"><h2>05 — Historique des rencontres</h2><p>Chaque box score est conservé séparément. Les matchs simulés sont identifiés.</p><p><b id="historyCount">0</b> match(s) enregistré(s)</p><div id="historyList"></div></section>
-        <section class="panel"><h2>06 — Statistiques individuelles de saison (simulation)</h2><p>Totaux et moyennes calculés à partir des box scores conservés. Les pourcentages sont recalculés depuis les tirs réussis et tentés.</p><div class="actions"><button class="btn" id="seasonRefresh">Recalculer les stats de saison</button><button class="btn" id="seasonExport">Exporter stats + historique JSON</button></div><div class="tablewrap"><table><thead><tr><th>Joueur</th><th>GP</th><th>PTS</th><th>PPG</th><th>REB</th><th>RPG</th><th>AST</th><th>APG</th><th>STL</th><th>BLK</th><th>TOV</th><th>MPG</th><th>FG%</th><th>3P%</th><th>FT%</th><th>eFG%</th><th>TS%</th></tr></thead><tbody id="seasonTable"></tbody></table></div></section>
+        <section class="panel"><h2>06 — Historique des rencontres</h2><p>Chaque box score est conservé séparément. Les matchs simulés sont identifiés.</p><p><b id="historyCount">0</b> match(s) enregistré(s)</p><div id="historyList"></div></section>
+        <section class="panel"><h2>07 — Statistiques individuelles de saison (simulation)</h2><p>Totaux et moyennes calculés à partir des box scores conservés. Les pourcentages sont recalculés depuis les tirs réussis et tentés.</p><div class="actions"><button class="btn" id="seasonRefresh">Recalculer les stats de saison</button><button class="btn" id="seasonExport">Exporter stats + historique JSON</button></div><div class="tablewrap"><table><thead><tr><th>Joueur</th><th>GP</th><th>PTS</th><th>PPG</th><th>REB</th><th>RPG</th><th>AST</th><th>APG</th><th>STL</th><th>BLK</th><th>TOV</th><th>MPG</th><th>FG%</th><th>3P%</th><th>FT%</th><th>eFG%</th><th>TS%</th></tr></thead><tbody id="seasonTable"></tbody></table></div></section>
         <footer>NBA Sim Lab — la base locale est la référence de simulation. Le navigateur n’écrit dans un fichier local qu’après autorisation explicite. Les statistiques réelles importées et les statistiques simulées restent séparées.</footer>
     </main>
-    <script src="app.js"></script>
+    <script src="app.js"></script>\n    <script src="data-sync.js"></script>
 </body>
 
 </html>
