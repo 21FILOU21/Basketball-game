@@ -20,13 +20,11 @@
   };
   const validIntervals = [0, 6, 24, 168];
   const interval = () => {
-    const saved = localStorage.getItem(settingsKey);
-    const selected = saved !== null ? Number(saved) : Number(document.getElementById('syncInterval')?.value ?? 24);
+    const selected = Number(document.getElementById('syncInterval')?.value ?? localStorage.getItem(settingsKey) ?? 24);
     return validIntervals.includes(selected) ? selected : 24;
   };
   const seasonYear = () => {
-    const saved = localStorage.getItem(seasonSettingsKey);
-    const selected = Number(saved !== null ? saved : document.getElementById('syncSeason')?.value || 2026);
+    const selected = Number(document.getElementById('syncSeason')?.value || localStorage.getItem(seasonSettingsKey) || 2026);
     return Number.isInteger(selected) && selected >= 1947 && selected <= 2100 ? selected : 2026;
   };
   function restoreSettings() {
