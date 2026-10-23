@@ -93,3 +93,39 @@ Corriger la restauration des paramètres d'intervalle et de saison dans `data-sy
 - 2026-10-23 : les huit pages Basketball-Reference ont été rapportées HTTP 403 lors de tentatives antérieures; aucune donnée réelle confirmée.
 - 2026-10-23 : la PR #3 a été trouvée fusionnée dans `main`, contrairement à l'état supposé dans le contexte précédent.
 - 2026-10-23 : clone local impossible dans cet environnement à cause de la résolution DNS de `github.com`.
+
+
+## Mise à jour de suivi — correctif des réglages (2026-10-23)
+
+Cette section complète l'état initial ci-dessus; les échecs précédents sont conservés.
+
+- Branche de suivi : `fix/pr3-sync-audit`.
+- PR de suivi : https://github.com/21FILOU21/Basketball-game/pull/4 — ouverte, en brouillon, non fusionnée.
+- Dernier commit de code testé par la CI en cours au moment de la mise à jour précédente : `8132398b862d20ac83d946f747640da7e2a55504`. Vérifier le nouveau SHA après cette mise à jour documentaire.
+- Fichiers modifiés dans le suivi : `data-sync.js`, `tests/data-sync.test.js`, ce document.
+
+### Correctif appliqué
+
+- `data-sync.js` restaure maintenant le choix de l'intervalle enregistré dans `localStorage` vers le contrôle HTML au chargement, au lieu de simplement lire une valeur de formulaire par défaut.
+- Les valeurs d'intervalle autorisées sont validées contre `0, 6, 24, 168`; une valeur inconnue retombe sur 24 h.
+- La saison choisie est sauvegardée dans `nbaSimLab.syncSeasonYear.v1` et restaurée au chargement si elle est comprise entre 1947 et 2100.
+- Les valeurs actuelles du formulaire restent prioritaires après restauration afin que la sélection active soit utilisée pour une synchronisation manuelle.
+- Un test Node avec DOM et `localStorage` simulés a été ajouté pour vérifier la restauration de l'intervalle et de la saison ainsi que la persistance des changements.
+
+### Validation après correctif
+
+- Vérification GitHub du contenu de `data-sync.js` : le correctif et l'appel à `restoreSettings()` sont présents.
+- Le test ciblé a été ajouté à `tests/data-sync.test.js`, mais n'a pas encore été exécuté localement car le clone GitHub a échoué par problème DNS.
+- GitHub Actions pour le commit `8132398b862d20ac83d946f747640da7e2a55504` a été vu en état `in_progress` lors de la vérification; ce n'est pas encore une preuve de réussite. Le commit documentaire courant doit aussi être vérifié après push.
+- Aucun test de navigateur, aucun test des routes backend et aucune récupération réelle des huit catégories n'ont été effectués.
+
+### Source de données — évaluation toujours ouverte
+
+- Les documents officiels NBA.com Stats indiquent que les statistiques ne sont pas proposées au téléchargement CSV pour usage personnel/académique : https://www.nba.com/stats/help/faq
+- NBA Stat décrit une API nécessitant une clé, limitée par défaut à 10 requêtes authentifiées par heure et prévue pour un usage personnel non commercial; la documentation consultée ne prouve pas la disponibilité de toutes les huit catégories : https://nbastat.io/developers/api
+- NBA_Go documente des endpoints publics de totaux joueurs, statistiques avancées, matchs et shot charts, mais les appels réels, la couverture des huit catégories et les conditions d'utilisation restent non vérifiés : https://api.server.nbaapi.com/swagger/index.html
+- Aucune source alternative n'a été activée, aucune clé n'a été demandée et aucun frais n'a été engagé.
+
+### Prochaine étape prioritaire
+
+Vérifier le résultat final de GitHub Actions sur le SHA courant de la PR #4. Si les tests échouent, corriger la cause, pousser le correctif et recontrôler la CI. Ensuite seulement, poursuivre l'intégration d'une source alternative en testant d'abord un endpoint réel et ses conditions d'accès.
