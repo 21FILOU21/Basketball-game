@@ -34,6 +34,11 @@
     s.shooting.efgPct=rate(s.shooting.efgPct ?? p.efgPct ?? p.efg_pct);
     s.shooting.tsPct=rate(s.shooting.tsPct ?? p.ts ?? p.ts_pct ?? p.trueShootingPct);
     if(s.shooting.tsPct===null && pg.pts!==null && pg.fga>0) s.shooting.tsPct=pg.pts/(2*(pg.fga+0.44*(pg.fta||0)));
+    const advMap={per:['per'],usgPct:['usgPct','usg_pct'],astPct:['astPct','ast_pct'],trbPct:['trbPct','trb_pct'],orbPct:['orbPct','orb_pct'],drbPct:['drbPct','drb_pct'],stlPct:['stlPct','stl_pct'],blkPct:['blkPct','blk_pct'],tovPct:['tovPct','tov_pct'],ows:['ows'],dws:['dws'],ws:['ws'],ws48:['ws48','ws_48'],obpm:['obpm'],dbpm:['dbpm'],bpm:['bpm'],vorp:['vorp'],offRtg:['offRtg','off_rtg'],defRtg:['defRtg','def_rtg']};
+    for(const [dest,aliases] of Object.entries(advMap)) if(s.advanced[dest]===null || s.advanced[dest]===undefined){for(const alias of aliases){if(p[alias]!==undefined){s.advanced[dest]=num(p[alias]);break;}}}
+    for(const [group,fields] of [['perMinute',['pts','fg','fga','fg3','fg3a','ft','fta','orb','drb','trb','ast','stl','blk','tov','pf']],['perPossession',['pts','fg','fga','fg3','fg3a','ft','fta','orb','drb','trb','ast','stl','blk','tov','pf']]]) {
+      for(const field of fields) { const raw=p[group+'_'+field] ?? p[field+'_'+(group==='perMinute'?'per_minute':'per_100_poss')]; if(raw!==undefined && s[group][field]==null)s[group][field]=num(raw); }
+    }
     const id=String(p.id ?? [p.name||p.player||'unknown',p.team||p.tm||'UNK',p.season||SEASON].join('|')).trim();
     return {id,name:String(p.name||p.player||p.Player||'Joueur inconnu').trim(),team:String(p.team||p.tm||p.teamAbbreviation||'UNK').trim(),pos:String(p.pos||p.position||'—').trim(),age:num(p.age),season:String(p.season||SEASON),source:String(p.source||'Import utilisateur'),updatedAt:p.updatedAt||null,stats:s};
   }
