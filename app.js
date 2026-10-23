@@ -219,15 +219,19 @@
     const parseLine=line=>{const out=[];let cur='',quote=false;for(let i=0;i<line.length;i++){const ch=line[i];if(ch==='"'&&line[i+1]==='"'&&quote){cur+='"';i++;}else if(ch==='"')quote=!quote;else if(ch===','&&!quote){out.push(cur.trim());cur='';}else cur+=ch;}out.push(cur.trim());return out;};
     const headers=parseLine(lines[0]).map(h=>h.toLowerCase().replace(/[%]/g,'_pct').replace(/[^a-z0-9]+/g,'_').replace(/^_|_$/g,''));
     const file=filename.toLowerCase().replace(/[^a-z0-9]+/g,'_');
-    const group=file.includes('per_minute')||file.includes('per_min')?'perMinute':file.includes('per_poss')||file.includes('per_100')?'perPossession':file.includes('advanced')?'advanced':file.includes('shooting')?'shooting':file.includes('play_by_play')?'playByPlay':'perGame';
+    const group=file.includes('per_minute')||file.includes('per_min')?'perMinute':file.includes('per_poss')||file.includes('per_100')?'perPossession':file.includes('advanced')?'advanced':file.includes('shooting')?'shooting':file.includes('play_by_play')?'playByPlay':file.includes('totals')?'totals':'perGame';
     return lines.slice(1).map(line=>{
       const vals=parseLine(line),o={};headers.forEach((h,i)=>o[h]=vals[i]??'');
       const get=(...keys)=>{for(const k of keys)if(o[k]!==undefined&&o[k]!=='')return o[k];return null;};
       const name=get('player','name');if(!name)return null;
       const team=get('tm','team'),base={name,team,pos:get('pos','position'),age:get('age'),season:SEASON,source:'Basketball-Reference CSV ('+group+')',rawTables:{[group]:o}};
       const fields=['fg','fga','fg3','fg3a','ft','fta','orb','drb','trb','ast','stl','blk','tov','pf','pts'];
-      if(group==='perGame')return {...base,gp:get('g','gp'),gs:get('gs'),mp:get('mp','mp_per_g'),pts:get('pts','pts_per_g'),fg:get('fg','fg_per_g'),fga:get('fga','fga_per_g'),fg_pct:get('fg_pct'),fg3:get('x3p','fg3','3p'),fg3a:get('x3pa','fg3a','3pa'),fg3_pct:get('x3p_pct','fg3_pct','3p_pct'),ft:get('ft','ft_per_g'),fta:get('fta','fta_per_g'),ft_pct:get('ft_pct'),orb:get('orb','orb_per_g'),drb:get('drb','drb_per_g'),trb:get('trb','trb_per_g'),ast:get('ast','ast_per_g'),stl:get('stl','stl_per_g'),blk:get('blk','blk_per_g'),tov:get('tov','tov_per_g'),pf:get('pf','pf_per_g'),efg_pct:get('efg_pct'),ts_pct:get('ts_pct'),three_par:get('x3p_ar','3par','3p_ar'),f_tr:get('f_tr','ftr'),stats:{shooting:{efgPct:get('efg_pct'),tsPct:get('ts_pct'),threePar:get('x3p_ar','3par','3p_ar'),fTr:get('f_tr','ftr'),dist:get('dist')}}};
+      if(group==='perGame')return {...base,gp:get('g','gp'),gs:get('gs'),mp:get('mp','mp_per_g'),pts:get('pts','pts_per_g'),fg:get('fg','fg_per_g'),fga:get('fga','fga_per_g'),fg_pct:get('fg_pct'),fg3:get('x3p','fg3','3p'),fg3a:get('x3pa','fg3a','3pa'),fg3_pct:get('x3p_pct','fg3_pct','3p_pct'),ft:get('ft','ft_per_g'),fta:get('fta','fta_per_g'),ft_pct:get('ft_pct'),orb:get('orb','orb_per_g'),drb:get('drb','drb_per_g'),trb:get('trb','trb_per_g'),ast:get('ast','ast_per_g'),stl:get('stl','stl_per_g'),blk:get('blk','blk_per_g'),tov:get('tov','tov_per_g'),pf:get('pf','pf_per_g'),efg_pct:get('efg_pct'),ts_pct:get('ts_pct'),three_par:get('x3p_ar','3par','3p_ar'),f_tr:get('f_tr','ftr'),stats:{shooting:{efgPct:get('efg_pct'),tsPct:get('ts_pct'),threePar:get('x3p_ar','3par','3p_ar'),fTr:get('f_tr','ftr'),dist:get('dist')},units:{perGame:'per_game'}}};
       const raw={};
+      if(group==='totals'){
+        for(const h of headers)if(!['player','pos','age','tm','team','g','gs'].includes(h))raw[h]=get(h);
+        return {...base,stats:{totals:raw,units:{totals:'season_total'}}};
+      }
       if(group==='perMinute'||group==='perPossession'){for(const k of fields)raw[k]=get(...(k==='fg3'?['x3p','fg3','3p']:k==='fg3a'?['x3pa','fg3a','3pa']:[k]));return {...base,stats:{[group]:raw,units:{[group]:group==='perMinute'?'per_minute':'per_100_possessions'}}};}
       if(group==='advanced'){
         const aliases={per:['per'],usgPct:['usg_pct'],astPct:['ast_pct'],trbPct:['trb_pct'],orbPct:['orb_pct'],drbPct:['drb_pct'],stlPct:['stl_pct'],blkPct:['blk_pct'],tovPct:['tov_pct'],ows:['ows'],dws:['dws'],ws:['ws'],ws48:['ws_48'],obpm:['obpm'],dbpm:['dbpm'],bpm:['bpm'],vorp:['vorp'],offRtg:['ortg','off_rtg'],defRtg:['drtg','def_rtg']};
