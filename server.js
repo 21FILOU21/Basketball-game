@@ -61,7 +61,18 @@ function extractTable(html, tableId) {
   }
   return null;
 }
-function csvColumnCount(csv) {\n  const firstLine = String(csv).split(/\\r?\\n/)[0] || '';\n  let quoted = false, count = 1;\n  for (let i = 0; i < firstLine.length; i++) {\n    if (firstLine[i] === '"') {\n      if (quoted && firstLine[i + 1] === '"') i++;\n      else quoted = !quoted;\n    } else if (firstLine[i] === ',' && !quoted) count++;\n  }\n  return firstLine ? count : 0;\n}\nfunction tableToCsv(table) {
+function csvColumnCount(csv) {
+  const firstLine = String(csv).split(/\r?\n/)[0] || '';
+  let quoted = false, count = 1;
+  for (let i = 0; i < firstLine.length; i++) {
+    if (firstLine[i] === '"') {
+      if (quoted && firstLine[i + 1] === '"') i++;
+      else quoted = !quoted;
+    } else if (firstLine[i] === ',' && !quoted) count++;
+  }
+  return firstLine ? count : 0;
+}
+function tableToCsv(table) {
   const rowHtml = [...table.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr\s*>/gi)].map(m => m[1]);
   const rows = [];
   for (const row of rowHtml) {
