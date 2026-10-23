@@ -179,3 +179,83 @@ Le run #10 cité plus haut a validé quatre tests sur un commit antérieur aux m
 2. Exécuter `npm test` sur le dernier SHA de la PR #4.
 3. Ajouter les tests de fusion/persistance, doublons, joueurs transférés et import partiel.
 4. Valider l'intégration avec navigateur et serveur hébergé avant de considérer le bouton fonctionnel de bout en bout.
+
+
+## Reprise de mission — validation PR #4 et fournisseur réel (2026-10-23)
+
+### État GitHub revérifié
+
+- PR #4 : **fermée et fusionnée**, contrairement à l'état indiqué dans les anciennes sections ci-dessus. GitHub indique le commit de fusion `548b8f13ca2b57314bc6baf2a759a666e1dbeae6`. Cette fusion a eu lieu avant cette reprise; aucune fusion, fermeture, suppression de branche ou modification directe de `main` n'a été effectuée dans cette reprise.
+- Tête de branche enregistrée pour la PR #4 : `b3a3562fd5aed2f20cfa51ac12c916f45b681b68`.
+- La branche `fix/pr3-sync-audit` existe toujours lors de la vérification.
+- PR #4 : https://github.com/21FILOU21/Basketball-game/pull/4
+- Commit de fusion : https://github.com/21FILOU21/Basketball-game/commit/548b8f13ca2b57314bc6baf2a759a666e1dbeae6
+
+### CI — SHA exact confirmé
+
+- Workflow : `Test NBA data sync`, run #15, ID `40040686881`.
+- URL : https://github.com/21FILOU21/Basketball-game/actions/runs/40040686881
+- SHA de commit associé à l'exécution : `b3a3562fd5aed2f20cfa51ac12c916f45b681b68`.
+- Job `node-tests` : **success**.
+- Étape `Run npm test` : **success**.
+- Le commit `b3a3562...` est celui de la tête de PR vérifiée. Le commit de fusion `548b8f1...` n'a pas retourné de run propre via l'outil GitHub consulté; la preuve CI disponible est le run #15 sur le SHA de tête de PR, pas un run distinct sur le SHA de fusion.
+- Le test HTTP est bien inclus dans `tests/data-sync.test.js` : il lance le serveur local sur un port éphémère et vérifie `/api/health`, catégorie/saison invalides (400), une réponse de parsing fixture (200, une ligne, quatre colonnes, caractères accentués et virgule citée) et un refus amont simulé (403).
+- **Limite de preuve :** le succès CI concerne les tests Node et leur source amont simulée. Il ne prouve pas une connexion réelle à un fournisseur NBA.
+
+### Fournisseurs de statistiques réévalués
+
+#### NBA Stat — candidat nécessitant une action du propriétaire
+
+Documentation officielle : https://nbastat.io/developers/api
+FAQ officielle : https://nbastat.io/faq
+
+La documentation indique :
+- Authentification obligatoire par jeton personnel transmis dans l'en-tête `Authorization: Bearer …`.
+- Limite par défaut de 10 requêtes authentifiées par compte sur toute fenêtre glissante de 60 minutes.
+- Usage limité au divertissement personnel non commercial; la redistribution ou l'intégration dans un produit commercial exige un accord écrit préalable et les autorisations tierces nécessaires.
+- Endpoints documentés pour les listes de joueurs, logs de matchs par joueur, logs d'équipes, matchs et box scores historiques. Les logs de joueurs exposent minutes, tirs, rebonds, passes, statistiques défensives, plus/minus et mentions DNP.
+- Les identifiants sont des identifiants internes NBA Stat, pas des identifiants officiels NBA.
+
+**Test réel bloqué :** aucun jeton autorisé n'est configuré dans cet environnement. Une tentative d'ouverture de l'endpoint API via l'outil de consultation web n'a pas été acheminée au fournisseur (outil incapable d'accéder à l'URL API); elle ne fournit donc ni statut HTTP du fournisseur ni corps de réponse. Aucun faux statut HTTP ni aucune donnée réelle ne sont rapportés. Pour effectuer le test minimal réel, le propriétaire doit créer un jeton dans son compte NBA Stat puis le configurer côté serveur dans une variable d'environnement, par exemple `NBASTAT_API_TOKEN`; ne jamais le publier dans GitHub, le navigateur ou cette conversation. Aucune clé n'a été demandée dans le chat et aucun frais n'a été engagé.
+
+#### NBA_Go API
+
+Documentation : https://api.server.nbaapi.com/swagger/index.html
+
+La documentation publique annonce des routes de totaux joueurs, statistiques avancées, matchs et shot charts. Cependant, la documentation consultée ne fournit pas de conditions d'utilisation/licence suffisamment claires pour confirmer le droit d'intégration et de redistribution; l'outil de consultation web n'a pas pu ouvrir l'endpoint directement. **Non retenue pour l'intégration à ce stade** : accessibilité, conditions et réponse réelle restent non vérifiées.
+
+#### NBA.com Stats / stats.nba.com
+
+La FAQ officielle NBA indique que les statistiques affichées ne sont pas disponibles au téléchargement en CSV pour usage personnel/académique : https://www.nba.com/stats/help/faq. Les endpoints non officiellement documentés et les protections d'accès ne sont pas traités comme une autorisation d'extraction. Aucune requête n'a été faite pour contourner une protection.
+
+#### Fournisseurs commerciaux
+
+STATS Perform/Sportradar documente une couverture statistique NBA riche, mais aucun compte, tarif, contrat ou droit d'utilisation n'est disponible dans le projet. Aucune inscription payante ni dépense n'a été engagée.
+
+### Couverture des huit catégories — aucune donnée réelle récupérée
+
+| Catégorie du projet | Couverture démontrée par NBA Stat | Statut de réponse réelle |
+|---|---|---|
+| Totals | Pas de route agrégée saison par joueur explicitement démontrée dans les endpoints consultés; les logs/box scores pourraient permettre une agrégation après validation | NON TESTÉ — jeton requis |
+| Per Game | Calculable en principe à partir de totaux et matchs joués, mais agrégation non validée | NON TESTÉ — jeton requis |
+| Per 36 Minutes | Dérivation possible si totaux et minutes sont présents; formule et champs exacts à valider sur une réponse | NON TESTÉ — jeton requis |
+| Per 100 Possessions | Champs de possessions et définition d'agrégation non confirmés par les endpoints consultés | NON CONFIRMÉ |
+| Advanced | Les statistiques avancées exactes requises par le projet ne sont pas listées comme un jeu de données dédié dans la documentation API consultée | NON CONFIRMÉ |
+| Play-by-Play | Aucun endpoint play-by-play documenté dans les routes API examinées | NON CONFIRMÉ |
+| Shooting | Les logs de joueurs exposent des statistiques de tirs, mais les champs réels et une extraction saison complète restent à valider | NON TESTÉ — jeton requis |
+| Adjusted Shooting | Les statistiques ajustées exactes du projet ne sont pas confirmées par la documentation API consultée | NON CONFIRMÉ |
+
+Aucun nombre de lignes, saison ou joueur n'est déclaré récupéré : **0 ligne réelle validée dans cette mission**, car aucune réponse API réelle n'a été obtenue. Les résultats fixtures de CI ne sont pas des données NBA.
+
+### Intégration et simulateur
+
+- Aucun fournisseur n'a été intégré : la règle de mission exige une première réponse réelle réussie et des conditions d'utilisation vérifiées.
+- Le bouton « Prise de data », la persistance réelle, les profils joueurs et le moteur n'ont donc pas été validés de bout en bout.
+- Les champs de statistiques et les formules de simulation restent à vérifier avec un jeu de données réel et documenté.
+- Aucun gain de réalisme n'est revendiqué.
+
+### Prochaine action prioritaire
+
+1. Le propriétaire crée un jeton NBA Stat via son profil, confirme que l'usage envisagé reste personnel/non commercial, puis le configure **uniquement dans l'environnement du serveur** sous `NBASTAT_API_TOKEN` (ne pas envoyer le secret dans le chat).
+2. Ajouter un adaptateur minimal côté serveur, sans modifier `main` directement, puis tester un endpoint historique documenté et consigner le statut HTTP réel, les champs, la saison, les joueurs et les lignes valides.
+3. Si la réponse est valide, établir le mapping de colonnes avant toute fusion/sauvegarde; si les conditions d'utilisation ne conviennent pas, obtenir une permission écrite ou choisir un fournisseur licencié.
