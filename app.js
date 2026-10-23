@@ -177,6 +177,7 @@
         const totalNames=new Set(parsed.filter(p=>String(p.team||p.tm||'').toUpperCase()==='TOT').map(p=>String(p.name||p.player||'').trim().toLowerCase()));
         const rows=parsed.filter(p=>String(p.team||p.tm||'').toUpperCase()==='TOT'||!totalNames.has(String(p.name||p.player||'').trim().toLowerCase()));
         for(const row of rows){
+          if(String(row.team||row.tm||'').toUpperCase()==='TOT')row.team='MULTI';
           row.season=String(season-1)+'-'+String(season).slice(-2);
           row.source='Basketball-Reference ('+result.category+')';
           const p=normalizePlayer(row),key=identity(p),old=merged.get(key);
