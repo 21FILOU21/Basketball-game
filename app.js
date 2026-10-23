@@ -121,7 +121,6 @@
   $('addTeamPlayer').onclick=()=>{const p=players.find(p=>p.id===$('teamPlayers').value);let ti=+$('targetTeam').value,slot=teams[ti].findIndex(x=>!x);assignPlayer(p,ti,slot<0?+$('addSlot').value:slot);};
   $('spin').onclick=()=>{const list=teamsList();if(!list.length)return;selectedTeam=list[Math.floor(Math.random()*list.length)];spinTurns+=5+Math.floor(Math.random()*4);$('wheel').style.transform='rotate('+(spinTurns*360+Math.random()*300)+'deg)';$('teamResult').textContent=selectedTeam;$('teamHint').textContent=players.filter(p=>p.team===selectedTeam).length+' joueur(s) chargé(s)';renderPlayerSelects();};
   $('search').oninput=renderTable;$('sort').onchange=renderTable;$('variance').oninput=()=>$('varianceValue').textContent=$('variance').value+'%';
-  $('demo').onclick=()=>status('Les données de démonstration ont été retirées pour éviter de les confondre avec des statistiques réelles. Importe un fichier de données vérifiées.',true);
   $('reset').onclick=()=>{if(!confirm('Vider la base locale et les compositions ? Cette action ne supprime pas les fichiers exportés.'))return;players=[];teams=[Array(5).fill(null),Array(5).fill(null)];selectedTeam=null;render();persistLocal();status('Base locale vidée. Les sauvegardes exportées restent intactes.');};
   $('export').onclick=async()=>{try{await writeDatabase();status('Base exportée/sauvegardée : '+players.length+' joueurs.');}catch(e){status('Export impossible : '+e.message,true);}};
   $('linkFile').onclick=chooseDatabase;
