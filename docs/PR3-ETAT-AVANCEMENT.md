@@ -129,3 +129,25 @@ Cette section complète l'état initial ci-dessus; les échecs précédents sont
 ### Prochaine étape prioritaire
 
 Vérifier le résultat final de GitHub Actions sur le SHA courant de la PR #4. Si les tests échouent, corriger la cause, pousser le correctif et recontrôler la CI. Ensuite seulement, poursuivre l'intégration d'une source alternative en testant d'abord un endpoint réel et ses conditions d'accès.
+
+
+## Résultat CI confirmé — 2026-10-23
+
+- Workflow : `Test NBA data sync`, run #10, ID `40040471796`.
+- Référence exécutée par le runner : merge ref de PR #4, SHA `9e129bf075e781643179237906cb35fe4c4ab941`, intégrant le commit de code/tests `8132398b862d20ac83d946f747640da7e2a55504`.
+- Job `node-tests` : **success**.
+- Commande réellement exécutée : `npm test`, Node.js `v20.20.2`.
+- Résultat TAP : **4 tests, 4 réussis, 0 échec, 0 ignoré**. Le test ajouté de restauration/persistance des paramètres a réussi.
+- Le commit suivant `d8b32f2db4553caadda8566854482b6a2b58c8fa` ne modifie que le document de suivi; aucun run associé à ce SHA n'a été retourné. Le code et les tests couverts par le run #10 n'ont pas changé depuis le SHA de code/tests indiqué ci-dessus.
+- Avertissement runner : les actions `checkout@v4` et `setup-node@v4` ont émis un avertissement de dépréciation concernant Node.js 20 forcé vers Node.js 24. Ce n'est pas un échec du test, mais la CI devra être revue avant que cet avertissement ne devienne bloquant.
+
+### Statut actualisé
+
+- Restauration de l'intervalle et de la saison : **TESTÉ AVEC DONNÉES FICTIVES** (CI).
+- Parsing des tableaux source avec fixture : **TESTÉ AVEC DONNÉES FICTIVES** (CI).
+- Synchronisation des huit catégories avec source réelle : **BLOQUÉ / NON TESTÉ**.
+- Persistance de statistiques réelles après rechargement : **NON TESTÉ**.
+- Utilisation des statistiques réelles par le simulateur : **NON TESTÉ**.
+- Validation navigateur et hébergement : **NON TESTÉ**.
+
+La prochaine priorité demeure l'évaluation d'un fournisseur autorisé et l'essai d'un endpoint réel, en vérifiant sa documentation et ses conditions avant d'intégrer un adaptateur.
