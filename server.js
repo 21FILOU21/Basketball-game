@@ -158,8 +158,15 @@ const server = http.createServer(async (req, res) => {
     return send(res, 200, { ok: true, service: 'basketball-game-data-sync', categories: Object.keys(CATEGORY_PATHS), cacheTtlMs: CACHE_TTL_MS });
   }
   if (req.method !== 'GET' || url.pathname !== '/api/nba/stats') return send(res, 404, { error: 'Not found' });
-  const season = Number(url.searchParams.get('season') || 2026);
+  const seasonValue = url.searchParams.get('season');
+  const season = Number(seasonValue || 2026);
   const category = url.searchParams.get('category') || '';
+  if (!Number.isInteger(season) || season < 1947 || season > 2100) {
+    return send(res, 400, { ok: false, error: 'Invalid season end year. Expected an integer between 1947 and 2100.' });
+  }
+  if (!Object.prototype.hasOwnProperty.call(CATEGORY_PATHS, category)) {
+    return send(res, 400, { ok: false, error: 'Unknown statistics category.' });
+  }
   try {
     const result = await fetchCategory(season, category);
     return send(res, 200, result);
