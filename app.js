@@ -233,7 +233,7 @@
     for(let fileIndex=0;fileIndex<files.length;fileIndex++){const f=files[fileIndex];status('Import en cours ('+(fileIndex+1)+'/'+files.length+') : '+f.name);
       try{
         const txt=await f.text();let data;
-        if(/\\.(csv|txt)$/i.test(f.name))data=parseCSV(txt,f.name);
+        if(/\.(csv|txt)$/i.test(f.name))data=parseCSV(txt,f.name);
         else{data=safeJSON(txt);if(data.players)data=data.players;}
         if(!Array.isArray(data))throw new Error('Le fichier doit contenir un tableau de joueurs.');
         // Basketball-Reference may emit a TOT aggregate row alongside team rows.
