@@ -16,7 +16,8 @@ test('extracts a source table and preserves all headers and rows', () => {
   const table = extractTable(html, 'totals_stats');
   assert.ok(table);
   const csv = tableToCsv(table);
-  assert.match(csv, /player_id/);\n  assert.equal(csvColumnCount(csv), 4);
+  assert.match(csv, /player_id/);
+  assert.equal(csvColumnCount(csv), 4);
   assert.match(csv, /Zoë & Co\./);
   assert.match(csv, /awards/);
   assert.match(csv, /player01/);
