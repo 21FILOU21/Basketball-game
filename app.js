@@ -176,7 +176,7 @@
     const files=[...e.target.files||[]];if(!files.length)return;
     const identity=p=>[p.name,p.team,p.season].map(v=>String(v||'').trim().toLowerCase()).join('|');
     let merged=new Map(players.map(p=>[identity(p),p]));let added=0,updated=0,errors=[];
-    for(const f of files){
+    for(let fileIndex=0;fileIndex<files.length;fileIndex++){const f=files[fileIndex];status('Import en cours ('+(fileIndex+1)+'/'+files.length+') : '+f.name);
       try{
         const txt=await f.text();let data;
         if(/\\.(csv|txt)$/i.test(f.name))data=parseCSV(txt,f.name);
@@ -321,8 +321,9 @@
   }
   function weighted(items){const total=items.reduce((s,x)=>s+x.w,0);let r=Math.random()*total;for(const x of items){r-=x.w;if(r<=0)return x;}return items[items.length-1];}
   function leaders(lines) {
-    const cats=[['Meilleur marqueur','pts'],['Meilleur rebondeur','trb'],['Meilleur passeur','ast'],['Meilleur intercepteur','stl'],['Meilleur contreur','blk']];
-    return cats.map(([label,key])=>{const max=Math.max(...lines.flatMap(t=>t.players.map(p=>p[key])));return {label,value:max,names:lines.flatMap(t=>t.players.filter(p=>p[key]===max&&max>0).map(p=>p.name+' ('+t.label+')'))};});
+    const cats=[['Meilleur marqueur','pts'],['Meilleur rebondeur','trb'],['Meilleur passeur','ast'],['Meilleur intercepteur','stl'],['Meilleur contreur','blk'],['Meilleur joueur (EFF)','eff']];
+    const value=(p,key)=>key==='eff'?p.pts+p.trb+p.ast+p.stl+p.blk-(p.fga-p.fg)-(p.fta-p.ft)-p.tov:p[key];
+    return cats.map(([label,key])=>{const all=lines.flatMap(t=>t.players.map(p=>({p,t,v:value(p,key)}))),max=Math.max(...all.map(x=>x.v));return {label,value:max,names:all.filter(x=>x.v===max&&max>0).map(x=>x.p.name+' ('+x.t.label+')')};});
   }
   function renderBox(game) {
     const columns=[['Joueur','name'],['MIN','mp'],['PTS','pts'],['FG','fg'],['FGA','fga'],['FG%','fgPct'],['3P','fg3'],['3PA','fg3a'],['3P%','threePct'],['FT','ft'],['FTA','fta'],['FT%','ftPct'],['OREB','orb'],['DREB','drb'],['REB','trb'],['AST','ast'],['STL','stl'],['BLK','blk'],['TOV','tov'],['PF','pf'],['+/-','plusMinus']];
